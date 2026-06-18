@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClerkMinutes Cross-department Strategy</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#faf9f5; --primary:#ffffff; --secondary:#f0eee7; --border:rgba(0,0,0,.12); --border2:rgba(0,0,0,.22);
+  --tp:#1f1e1b; --ts:#6b6a63; --tt:#9a998f; --md:8px; --lg:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#1f1e1c; --primary:#2a2926; --secondary:#33322e; --border:rgba(255,255,255,.13); --border2:rgba(255,255,255,.24);
+  --tp:#ededea; --ts:#a8a79e; --tt:#7d7c74; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tp);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;}
+.wrap{max-width:1200px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:20px;font-weight:500;margin:0;}
+.card{background:var(--primary);border:0.5px solid var(--border);border-radius:var(--lg);padding:1rem 1.25rem;}
+input,select,button{font-family:inherit;font-size:13px;color:var(--tp);background:var(--primary);border:0.5px solid var(--border2);border-radius:var(--md);padding:7px 9px;}
+input:focus,select:focus{outline:none;box-shadow:0 0 0 2px var(--border2);}
+button{cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:34px;transition:background .12s;}
+button:hover{background:var(--secondary);}button:active{transform:scale(.98);}
+table{border-collapse:collapse;font-size:13px;min-width:1180px;}
+thead th{text-align:left;font-weight:500;color:var(--ts);font-size:12px;padding:8px 8px;border-bottom:0.5px solid var(--border2);white-space:nowrap;position:relative;overflow:hidden;}
+.resizer{position:absolute;top:0;right:0;width:7px;height:100%;cursor:col-resize;user-select:none;}
+.resizer:hover{box-shadow:inset -2px 0 0 var(--border2);}
+.resizing{cursor:col-resize;user-select:none;}
+tbody td{padding:4px 6px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
+tbody tr:hover{background:var(--secondary);}
+td input,td select{width:100%;border:0.5px solid transparent;background:transparent;padding:6px 7px;}
+td input:hover,td select:hover{border-color:var(--border);background:var(--primary);}
+td input:focus,td select:focus{border-color:var(--border2);background:var(--primary);}
+.delbtn{border:none;background:none;height:auto;padding:4px;color:var(--tt);}
+.delbtn:hover{color:#E24B4A;background:none;}
+.muted{color:var(--ts);}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:-1px;margin-right:4px;flex:0 0 auto;}
+.emo{display:inline-flex;align-items:center;justify-content:center;width:18px;font-size:14px;line-height:1;flex:0 0 auto;margin-right:2px;}
+.cellflex{display:flex;align-items:center;gap:2px;}
+.lnk{color:#378ADD;display:inline-flex;align-items:center;padding:3px;flex:0 0 auto;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.seclabel{font-size:14px;font-weight:500;margin-bottom:10px;}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;}
+.hint{font-size:12px;color:var(--tt);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.thwrap{display:flex;align-items:center;gap:3px;}
+.grip{cursor:grab;color:var(--tt);display:inline-flex;align-items:center;padding:2px;border-radius:4px;}
+.grip:hover{color:var(--ts);background:var(--secondary);}
+.grip:active{cursor:grabbing;}
+.thlabel{cursor:pointer;user-select:none;}
+.thlabel:hover{color:var(--tp);}
+.sortic{font-size:13px;color:var(--tt);}
+.sortic.on{color:var(--tp);}
+th.dragover{box-shadow:inset 2px 0 0 var(--blue,#378ADD);}
+tr.dragover td{box-shadow:inset 0 2px 0 #378ADD;}
+.gutter{width:24px;text-align:center;padding:4px 2px;}
+.thumb{width:42px;height:30px;object-fit:cover;border-radius:4px;border:0.5px solid var(--border2);cursor:zoom-in;flex:0 0 auto;}
+.thumbph{width:42px;height:30px;border-radius:4px;border:0.5px dashed var(--border2);display:inline-flex;align-items:center;justify-content:center;color:var(--tt);flex:0 0 auto;}
+.iconbtn{border:none;background:none;height:auto;padding:3px;color:var(--ts);}
+.iconbtn:hover{color:var(--tp);background:var(--secondary);}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:50;cursor:zoom-out;}
+.lightbox img{max-width:90%;max-height:90%;border-radius:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+    <i class="ti ti-table" style="font-size:24px;color:var(--ts);"></i>
+    <h1>ClerkMinutes Cross-department Strategy</h1>
+  </div>
+
+  <div class="toolbar">
+    <button id="b-add"><i class="ti ti-plus"></i> Add campaign</button>
+    <button id="b-upload"><i class="ti ti-upload"></i> Upload sheet</button>
+    <button id="b-export"><i class="ti ti-download"></i> Export</button>
+    <button id="b-reset"><i class="ti ti-refresh"></i> Reset</button>
+    <span id="msg" class="muted" style="font-size:12px;"></span>
+    <input id="file" type="file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div class="hint"><i class="ti ti-grip-vertical"></i> Drag the handle on a header to reorder columns, or on a row to reorder rows. Click a column title to sort (A→Z, click again for Z→A; date columns sort by date). Drag a column's right edge to resize it.</div>
+
+  <div class="card" style="margin-bottom:1.5rem;overflow-x:auto;">
+    <table id="gtable">
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="seclabel">Goals to departments</div>
+    <div id="connector"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><div class="seclabel">By level</div><div style="position:relative;width:100%;height:200px;"><canvas id="levelChart"></canvas></div></div>
+    <div class="card"><div class="seclabel">By status</div><div style="position:relative;width:100%;height:200px;"><canvas id="statusChart"></canvas></div></div>
+  </div>
+
+</div>
+
+<script>
+const C={blue:'#378ADD',teal:'#1D9E75',coral:'#D85A30',amber:'#BA7517',purple:'#7F77DD',pink:'#D4537E',gray:'#888780',red:'#E24B4A',green:'#639922'};
+const COLOR={
+  'Increase trials':C.blue,'Increase conversion rate':C.teal,'New acquisition vertical':C.purple,'Lead generation':C.coral,'Increase usage':C.amber,
+  'Marketing':C.blue,'Sales':C.teal,'Product':C.purple,'Jessica':C.coral,'Adfix':C.amber,
+  'Ideation':C.gray,'Planning':C.amber,'Implementation':C.blue,'Production':C.purple,'Launched':C.teal,'Active':C.green,'Abandoned':C.red,
+  'Experiment':C.blue,'Growth lever':C.teal,'Foundational Channel':C.purple,'Failed':C.red
+};
+const cf=k=>COLOR[k]||C.gray;
+const EMOJI={'Marketing':'📮','Sales':'💰','Product':'📲','Jessica':'✍️','Adfix':'📢'};
+const emo=k=>EMOJI[k]||'';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const COLS=[
+  {key:'goal',label:'Goals',type:'select',w:170},
+  {key:'campaign',label:'Campaign',type:'text',w:220},
+  {key:'level',label:'Level',type:'select',w:150},
+  {key:'dateProposed',label:'Date proposed',type:'text',sort:'date',w:120},
+  {key:'startDate',label:'Start Date',type:'text',sort:'date',w:110},
+  {key:'status',label:'Status',type:'select',w:150},
+  {key:'owner',label:'Owner',type:'select',w:120},
+  {key:'operator',label:'Operator',type:'select',w:130},
+  {key:'framework',label:'Framework',type:'url',w:150},
+  {key:'preview',label:'Preview',type:'preview',w:150},
+  {key:'cac',label:'CAC',type:'text',w:80},
+  {key:'roi',label:'ROI',type:'text',w:80},
+  {key:'netRevenue',label:'Net Revenue',type:'text',w:110}
+];
+const DEF={};COLS.forEach(c=>DEF[c.key]=c);
+const SELECT_FIELDS=COLS.filter(c=>c.type==='select').map(c=>c.key);
+
+const SEED=[
+['Increase trials','Coast-to-Coast','Growth lever','Feb 2026','August 2026','Planning','Atanas','Marketing','https://app.notion.com/p/townweb/Project-1-Postcard-Coast-to-Coast-37c19c075f548173b853d1802d17f487','','$282','469%','$45,599'],
+['New acquisition vertical','Counties - region-to-region','Experiment','June 2026','July 2026','Implementation','Atanas','Marketing','https://app.notion.com/p/townweb/Experiment-County-Outbound-Regional-35f19c075f54812a92bceabd56f45650','','','',''],
+['Increase trials','17-day Referral postcard attribution','Experiment','May 2026','June 2026','Launched','Atanas','Marketing','','','','',''],
+['Increase trials','MN/MI A/B attribution','Experiment','May 2026','June 2026','Implementation','Atanas','Marketing','https://app.notion.com/p/townweb/Experiment-State-Specific-Postcard-Landing-Pages-Minnesota-Michigan-36819c075f548179b9a3f89e058eeaf5','','','',''],
+['Lead generation','Cold Call Whales','Experiment','December 2025','June 2026','Implementation','Atanas','Sales','','','','',''],
+['Increase conversion rate','Nurture trials','Foundational Channel','September 2025','May 2026','Active','Atanas','Sales','https://app.notion.com/p/townweb/SOP-for-Nurturing-System-Team-26319c075f54803c8002e3ba0f624769','','','',''],
+['Increase trials','Google Ads','Foundational Channel','December 2025','January 2026','Active','Atanas','Adfix','','','$335','338%','$10,199'],
+['Increase conversion rate','Phone Calls - Expired Trials','Growth lever','September 2025','May 2026','Active','Atanas','Sales','','','','',''],
+['Increase conversion rate','Win-back 30%','Growth lever','October 2025','June 2026','Active','Atanas','Jessica','https://app.notion.com/p/townweb/Project-1-Postcard-Coast-to-Coast-37c19c075f548173b853d1802d17f487','','','n/a','$4,788'],
+['Increase conversion rate','Seasonal offers - 3-month prices','Experiment','June 2026','TBD','Ideation','Atanas','Sales','','','','',''],
+['Increase usage','Improved in-app onboarding + tracking','Experiment','November 2025','TBD','Production','Andrei','Product','','','','',''],
+['Increase conversion rate','Billing page improvements','Experiment','November 2025','TBD','Production','Andrei','Product','','','','',''],
+['Increase trials','Extend trial for expired users','Failed','October 2025','December 2025','Abandoned','Atanas','Jessica','','','','','']
+].map(r=>{const o={};COLS.forEach((c,j)=>o[c.key]=r[j]);return o;});
+
+const DEFAULT_OPTS={
+  goal:['Increase trials','Increase conversion rate','New acquisition vertical','Lead generation','Increase usage'],
+  level:['Experiment','Growth lever','Foundational Channel','Failed'],
+  status:['Ideation','Planning','Implementation','Production','Launched','Active','Abandoned'],
+  owner:['Atanas','Andrei'],
+  operator:['Marketing','Sales','Product','Jessica','Adfix']
+};
+
+const KEY='clerkminutes-growth-v3',OKEY='clerkminutes-growth-opts-v3',CKEY='clerkminutes-growth-cols-v3',WKEY='clerkminutes-growth-widths-v3';
+function load(k,fb){try{const s=localStorage.getItem(k);if(s)return JSON.parse(s);}catch(e){}return fb;}
+let data=load(KEY,SEED.slice());
+let OPTS=load(OKEY,JSON.parse(JSON.stringify(DEFAULT_OPTS)));
+let order=load(CKEY,COLS.map(c=>c.key)).filter(k=>DEF[k]);
+COLS.forEach(c=>{if(!order.includes(c.key))order.push(c.key);});
+let widths=load(WKEY,{});
+const GUTW=26,DELW=42;
+const colW=k=>widths[k]||DEF[k].w;
+let sortKey=null,sortDir=1;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){setMsg('Heads up: local storage is full (screenshots take space) — changes work this session but may not all persist after refresh.');}}
+function saveOpts(){try{localStorage.setItem(OKEY,JSON.stringify(OPTS));}catch(e){}}
+function saveCols(){try{localStorage.setItem(CKEY,JSON.stringify(order));}catch(e){}}
+function saveWidths(){try{localStorage.setItem(WKEY,JSON.stringify(widths));}catch(e){}}
+function ensureOpts(){SELECT_FIELDS.forEach(f=>{if(!OPTS[f])OPTS[f]=[];data.forEach(d=>{const v=(d[f]||'').trim();if(v&&!OPTS[f].includes(v))OPTS[f].push(v);});});saveOpts();}
+
+const $=id=>document.getElementById(id);
+function setMsg(t){$('msg').textContent=t;}
+
+function renderTable(){
+  ensureOpts();
+  const total=GUTW+order.reduce((s,k)=>s+colW(k),0)+DELW;
+  const t=$('gtable');t.style.tableLayout='fixed';t.style.width=total+'px';t.style.minWidth='0';
+  $('thead').innerHTML=`<th class="gutter" style="width:${GUTW}px"></th>`+order.map(k=>{const c=DEF[k];
+    const ic=sortKey===k?(sortDir>0?'ti-chevron-up':'ti-chevron-down'):'ti-selector';
+    return `<th data-col="${k}" style="width:${colW(k)}px"><div class="thwrap">
+      <span class="grip" draggable="true" data-colgrip="${k}" title="Drag to move column"><i class="ti ti-grip-vertical"></i></span>
+      <span class="thlabel" data-sort="${k}">${esc(c.label)}</span>
+      <i class="ti ${ic} sortic ${sortKey===k?'on':''}" data-sort="${k}"></i></div><span class="resizer" data-rz="${k}" title="Drag to resize"></span></th>`;
+  }).join('')+`<th style="width:${DELW}px"></th>`;
+  $('tbody').innerHTML=data.map((d,i)=>{
+    const cells=order.map(k=>{const c=DEF[k];
+      if(c.type==='select'){
+        const isOp=c.key==='operator';
+        const opts=OPTS[c.key].map(o=>`<option value="${esc(o)}" ${o===d[c.key]?'selected':''}>${esc(isOp&&emo(o)?emo(o)+' '+o:o)}</option>`).join('');
+        const marker=isOp?(emo(d[c.key])?'':`<span class="dot" style="background:${cf(d[c.key])}"></span>`):`<span class="dot" style="background:${cf(d[c.key])}"></span>`;
+        return `<td><div class="cellflex">${marker}
+          <select data-i="${i}" data-f="${c.key}">${opts}<option value="__add__">+ Add new…</option></select></div></td>`;
+      }
+      if(c.type==='preview'){
+        const v=d.preview||'',img=d.previewImg||'';
+        const thumb=img?`<img class="thumb" src="${img}" data-prevopen title="Click to enlarge">`:`<span class="thumbph"><i class="ti ti-photo"></i></span>`;
+        const rm=img?`<button class="iconbtn" data-prevrm="${i}" title="Remove screenshot"><i class="ti ti-x"></i></button>`:'';
+        return `<td><div style="display:flex;flex-direction:column;gap:4px;">
+          <div class="cellflex">${thumb}<button class="iconbtn" data-prevup="${i}" title="Upload screenshot"><i class="ti ti-upload"></i></button>${rm}</div>
+          <div class="cellflex"><a class="lnk" data-link href="${esc(v)}" target="_blank" rel="noopener" title="Open link" style="display:${v?'inline-flex':'none'}"><i class="ti ti-external-link"></i></a>
+          <input data-i="${i}" data-f="preview" data-type="url" value="${esc(v)}" placeholder="URL"></div></div></td>`;
+      }
+      if(c.type==='url'){
+        const v=d[c.key]||'';
+        return `<td><div class="cellflex">
+          <a class="lnk" data-link href="${esc(v)}" target="_blank" rel="noopener" title="Open link" style="display:${v?'inline-flex':'none'}"><i class="ti ti-external-link"></i></a>
+          <input data-i="${i}" data-f="${c.key}" data-type="url" value="${esc(v)}" placeholder="URL"></div></td>`;
+      }
+      return `<td><input data-i="${i}" data-f="${c.key}" value="${esc(d[c.key])}"${c.key==='campaign'?' placeholder="Campaign name"':''}></td>`;
+    }).join('');
+    return `<tr data-row="${i}"><td class="gutter"><span class="grip" draggable="true" data-rowgrip="${i}" title="Drag to move row"><i class="ti ti-grip-vertical"></i></span></td>${cells}<td><button class="delbtn" data-del="${i}" title="Remove row"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+  $('tbody').querySelectorAll('select').forEach(s=>s.onchange=()=>onSelect(s));
+  $('tbody').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{
+    const i=+inp.dataset.i,k=inp.dataset.f;data[i][k]=inp.value;save();
+    if(inp.dataset.type==='url'){const a=inp.parentNode.querySelector('a[data-link]');a.href=inp.value;a.style.display=inp.value?'inline-flex':'none';}
+  });
+  $('tbody').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{data.splice(+b.dataset.del,1);save();renderTable();refresh();});
+  $('tbody').querySelectorAll('[data-prevup]').forEach(b=>b.onclick=()=>pickPreviewImage(+b.dataset.prevup));
+  $('tbody').querySelectorAll('[data-prevrm]').forEach(b=>b.onclick=()=>{data[+b.dataset.prevrm].previewImg='';save();renderTable();});
+  $('tbody').querySelectorAll('img[data-prevopen]').forEach(im=>im.onclick=()=>openImg(im.src));
+  wireDnD();
+}
+
+function sortBy(key){
+  if(sortKey===key)sortDir=-sortDir;else{sortKey=key;sortDir=1;}
+  const isDate=DEF[key].sort==='date';
+  data.sort((a,b)=>{
+    let av=(a[key]||'').trim(),bv=(b[key]||'').trim();
+    if(isDate){const ad=Date.parse(av),bd=Date.parse(bv),an=isNaN(ad),bn=isNaN(bd);
+      if(an&&bn)return 0;if(an)return 1;if(bn)return -1;return (ad-bd)*sortDir;}
+    if(!av&&!bv)return 0;if(!av)return 1;if(!bv)return -1;
+    return av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'})*sortDir;
+  });
+  save();renderTable();refresh();
+}
+function moveCol(from,toKey){
+  const a=order.indexOf(from);if(a<0)return;order.splice(a,1);
+  let b=order.indexOf(toKey);if(b<0)b=order.length;order.splice(b,0,from);
+  saveCols();renderTable();
+}
+let dragCol=null,dragRow=null;
+let rz=null;
+function applyWidths(){const t=$('gtable');t.style.width=(GUTW+order.reduce((s,k)=>s+colW(k),0)+DELW)+'px';
+  order.forEach(k=>{const th=$('thead').querySelector('th[data-col="'+k+'"]');if(th)th.style.width=colW(k)+'px';});}
+function onResizeMove(e){if(!rz)return;widths[rz.key]=Math.max(56,rz.w+(e.clientX-rz.x));applyWidths();}
+function onResizeUp(){if(!rz)return;rz=null;document.body.classList.remove('resizing');saveWidths();}
+document.addEventListener('mousemove',onResizeMove);
+document.addEventListener('mouseup',onResizeUp);
+
+function wireDnD(){
+  $('thead').querySelectorAll('.thlabel,.sortic').forEach(el=>el.onclick=()=>sortBy(el.dataset.sort));
+  $('thead').querySelectorAll('[data-rz]').forEach(h=>h.onmousedown=e=>{e.preventDefault();e.stopPropagation();rz={key:h.dataset.rz,x:e.clientX,w:colW(h.dataset.rz)};document.body.classList.add('resizing');});
+  $('thead').querySelectorAll('[data-colgrip]').forEach(g=>g.ondragstart=e=>{dragCol=g.dataset.colgrip;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragCol);});
+  $('thead').querySelectorAll('th[data-col]').forEach(th=>{
+    th.ondragover=e=>{if(dragCol){e.preventDefault();th.classList.add('dragover');}};
+    th.ondragleave=()=>th.classList.remove('dragover');
+    th.ondrop=e=>{e.preventDefault();th.classList.remove('dragover');if(dragCol&&dragCol!==th.dataset.col)moveCol(dragCol,th.dataset.col);dragCol=null;};
+  });
+  $('tbody').querySelectorAll('[data-rowgrip]').forEach(g=>g.ondragstart=e=>{dragRow=+g.dataset.rowgrip;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragRow);});
+  $('tbody').querySelectorAll('tr[data-row]').forEach(tr=>{
+    tr.ondragover=e=>{if(dragRow!=null){e.preventDefault();tr.classList.add('dragover');}};
+    tr.ondragleave=()=>tr.classList.remove('dragover');
+    tr.ondrop=e=>{e.preventDefault();tr.classList.remove('dragover');const t=+tr.dataset.row;
+      if(dragRow!=null&&dragRow!==t){const[m]=data.splice(dragRow,1);data.splice(t,0,m);save();renderTable();refresh();}dragRow=null;};
+  });
+}
+function onSelect(sel){
+  const i=+sel.dataset.i,f=sel.dataset.f;
+  if(sel.value==='__add__'){
+    const v=prompt('Add a new '+f+' option:');
+    if(v&&v.trim()){const t=v.trim();if(!OPTS[f].includes(t))OPTS[f].push(t);data[i][f]=t;saveOpts();}
+    save();renderTable();refresh();return;
+  }
+  data[i][f]=sel.value;save();renderTable();refresh();
+}
+
+function renderConnector(){
+  const gs=OPTS.goal.filter(g=>data.some(d=>d.goal===g));
+  const ops=OPTS.operator.filter(o=>data.some(d=>d.operator===o));
+  const W=660,rowH=64,boxH=50,y0=42,boxW=176,lx=18,rx=W-boxW-18;
+  const H=y0+Math.max(gs.length,ops.length,1)*rowH+8;
+  const gy=g=>y0+gs.indexOf(g)*rowH+boxH/2,oy=o=>y0+ops.indexOf(o)*rowH+boxH/2;
+  let links='';const lm={};
+  data.forEach(d=>{if(!gs.includes(d.goal)||!ops.includes(d.operator))return;const k=d.goal+'|||'+d.operator;lm[k]=(lm[k]||0)+1;});
+  Object.keys(lm).forEach(k=>{const [g,o]=k.split('|||');const c=lm[k];
+    links+=`<path d="M${lx+boxW},${gy(g)} C${(lx+boxW+rx)/2},${gy(g)} ${(lx+boxW+rx)/2},${oy(o)} ${rx},${oy(o)}" fill="none" stroke="${cf(g)}" stroke-width="${2+c*2.5}" stroke-opacity="0.5"/>`;});
+  const goalNode=(label,x,y,color,n)=>`<g>
+    <rect x="${x}" y="${y}" width="${boxW}" height="${boxH}" rx="7" fill="var(--secondary)" stroke="var(--border2)" stroke-width="0.5"/>
+    <circle cx="${x+15}" cy="${y+boxH/2}" r="5" fill="${color}"/>
+    <text x="${x+27}" y="${y+boxH/2+1}" font-size="12" font-weight="500" fill="var(--tp)" dominant-baseline="middle">${esc(label.length>20?label.slice(0,19)+'…':label)}</text>
+    <text x="${x+boxW-12}" y="${y+boxH/2+1}" font-size="12" fill="var(--ts)" text-anchor="end" dominant-baseline="middle">${n}</text></g>`;
+  const opNode=(o,x,y)=>{
+    const camps=data.filter(d=>d.operator===o);
+    const gap=Math.min(15,(boxW-30)/Math.max(camps.length,1));
+    const dots=camps.map((d,k)=>`<circle cx="${x+16+k*gap}" cy="${y+34}" r="5" fill="${cf(d.goal)}" stroke="var(--secondary)" stroke-width="1" style="cursor:pointer"><title>${esc(d.campaign)} · ${esc(d.goal)}</title></circle>`).join('');
+    const idMark=emo(o)
+      ?`<text x="${x+15}" y="${y+17}" font-size="15" text-anchor="middle" dominant-baseline="middle">${emo(o)}</text>`
+      :`<circle cx="${x+15}" cy="${y+16}" r="5" fill="${cf(o)}"/>`;
+    return `<g>
+      <rect x="${x}" y="${y}" width="${boxW}" height="${boxH}" rx="7" fill="var(--secondary)" stroke="var(--border2)" stroke-width="0.5"/>
+      ${idMark}
+      <text x="${x+27}" y="${y+17}" font-size="12" font-weight="500" fill="var(--tp)" dominant-baseline="middle">${esc(o.length>20?o.slice(0,19)+'…':o)}</text>
+      <text x="${x+boxW-12}" y="${y+17}" font-size="12" fill="var(--ts)" text-anchor="end" dominant-baseline="middle">${camps.length}</text>
+      ${dots}</g>`;
+  };
+  const gn=gs.map(g=>goalNode(g,lx,y0+gs.indexOf(g)*rowH,cf(g),data.filter(d=>d.goal===g).length)).join('');
+  const on=ops.map(o=>opNode(o,rx,y0+ops.indexOf(o)*rowH)).join('');
+  $('connector').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+    <text x="${lx}" y="24" font-size="12" font-weight="500" fill="var(--ts)">Goals</text>
+    <text x="${rx}" y="24" font-size="12" font-weight="500" fill="var(--ts)">Departments</text>
+    ${links}${gn}${on}</svg>`;
+}
+
+let charts={};
+function bar(id,counts){
+  const labels=Object.keys(counts);
+  if(charts[id])charts[id].destroy();
+  const isDark=matchMedia('(prefers-color-scheme: dark)').matches;
+  const grid=isDark?'rgba(255,255,255,.10)':'rgba(0,0,0,.08)',tk=isDark?'#bbb':'#666';
+  charts[id]=new Chart($(id),{type:'bar',
+    data:{labels,datasets:[{data:labels.map(l=>counts[l]),backgroundColor:labels.map(l=>cf(l)),borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{stepSize:1,precision:0,color:tk},grid:{color:grid}},y:{grid:{display:false},ticks:{color:tk}}}}});
+}
+function tally(k){const m={};data.forEach(d=>{if(d[k])m[d[k]]=(m[d[k]]||0)+1;});return m;}
+function refresh(){renderConnector();bar('levelChart',tally('level'));bar('statusChart',tally('status'));}
+
+$('b-add').onclick=()=>{
+  const o={};COLS.forEach(c=>o[c.key]=c.type==='select'?(OPTS[c.key][0]||''):'');
+  data.push(o);save();renderTable();refresh();
+  const inputs=$('tbody').querySelectorAll('input[data-f="campaign"]');inputs[inputs.length-1].focus();
+  setMsg('Added a row — fill in the details.');
+};
+$('b-upload').onclick=()=>$('file').click();
+$('file').onchange=e=>{
+  const file=e.target.files[0];if(!file)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{try{
+    const rows=parseCSV(ev.target.result);const hd=rows.shift().map(h=>h.trim().toLowerCase());
+    const ix=preds=>hd.findIndex(h=>preds.some(p=>h.includes(p)));
+    const map={goal:ix(['goal']),campaign:ix(['campaign']),level:ix(['level']),dateProposed:ix(['proposed']),startDate:ix(['start']),status:ix(['status']),owner:ix(['owner']),operator:ix(['operator']),framework:ix(['framework']),preview:ix(['preview']),cac:ix(['cac']),roi:ix(['roi']),netRevenue:ix(['revenue','net'])};
+    const get=(r,k)=>map[k]>=0?(r[map[k]]||'').trim():'';
+    const parsed=rows.filter(r=>get(r,'campaign')).map(r=>{const o={};COLS.forEach(c=>o[c.key]=get(r,c.key));return o;});
+    if(parsed.length){data=parsed;ensureOpts();save();renderTable();refresh();setMsg('Loaded '+parsed.length+' campaigns from '+file.name+'.');}
+    else setMsg('No campaign rows found in that file.');
+  }catch(err){setMsg('Could not parse that CSV.');}};
+  rd.readAsText(file);e.target.value='';
+};
+$('b-export').onclick=()=>{
+  const q=v=>/[",\n]/.test(v||'')?'"'+String(v).replace(/"/g,'""')+'"':(v||'');
+  const csv=[order.map(k=>DEF[k].label).join(',')].concat(data.map(d=>order.map(k=>q(d[k])).join(','))).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='clerkminutes-growth.csv';a.click();
+};
+$('b-reset').onclick=()=>{if(confirm('Reset campaigns, dropdown options, column order, and widths to defaults? This clears your changes.')){data=SEED.slice();OPTS=JSON.parse(JSON.stringify(DEFAULT_OPTS));order=COLS.map(c=>c.key);widths={};sortKey=null;sortDir=1;save();saveOpts();saveCols();saveWidths();renderTable();refresh();setMsg('Reset to defaults.');}};
+
+function pickPreviewImage(i){
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();
+    r.onload=()=>resizeImg(r.result,640,url=>{data[i].previewImg=url;save();renderTable();setMsg('Screenshot added.');});
+    r.readAsDataURL(f);};
+  inp.click();
+}
+function resizeImg(src,maxW,cb){const img=new Image();img.onload=()=>{
+  let w=img.width,h=img.height;if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+  const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+  try{cb(c.toDataURL('image/jpeg',0.72));}catch(e){cb(src);}};img.onerror=()=>cb(src);img.src=src;}
+function openImg(src){const o=document.createElement('div');o.className='lightbox';const im=new Image();im.src=src;o.appendChild(im);o.onclick=()=>o.remove();document.body.appendChild(o);}
+
+function parseCSV(text){
+  const rows=[];let row=[],fld='',q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){fld+='"';i++;}else q=false;}else fld+=c;}
+    else{if(c==='"')q=true;else if(c===','){row.push(fld);fld='';}
+      else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(fld);fld='';if(row.some(x=>x!==''))rows.push(row);row=[];}
+      else fld+=c;}}
+  if(fld!==''||row.length){row.push(fld);if(row.some(x=>x!==''))rows.push(row);}
+  return rows;
+}
+renderTable();refresh();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{bar('levelChart',tally('level'));bar('statusChart',tally('status'));});
+</script>
+</body>
+</html>

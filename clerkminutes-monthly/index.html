@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClerkMinutes 2026 Monthly</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f0f2f8;
+      --surface:  #ffffff;
+      --surface2: #f5f7fc;
+      --border:   #dde2f0;
+      --accent:   #6c63ff;
+      --green:    #00a884;
+      --red:      #e84545;
+      --yellow:   #d97706;
+      --orange:   #ea6c00;
+      --text:     #1a1d2e;
+      --muted:    #6b7280;
+      --radius:   12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header h1 span { color: var(--accent); }
+    .header-meta { display: flex; gap: 10px; align-items: center; }
+
+    .legend-pill {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted);
+    }
+    .legend-pill .dot {
+      width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+    }
+    .legend-pill .dot.forecast {
+      background: transparent;
+      border: 2px dashed;
+      border-radius: 2px;
+    }
+
+    /* ── Layout ─────────────────────────────────── */
+    main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+    /* ── Progress banner ─────────────────────────── */
+    .progress-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .progress-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .bar-track {
+      flex: 1;
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.6s ease;
+    }
+    .progress-pct { font-size: 13px; font-weight: 700; color: var(--green); white-space: nowrap; }
+
+    /* ── KPI grid ────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .kpi.k1::before { background: var(--accent); }
+    .kpi.k2::before { background: var(--green); }
+    .kpi.k3::before { background: var(--orange); }
+    .kpi.k4::before { background: var(--yellow); }
+    .kpi.k5::before { background: var(--red); }
+
+    .kpi-label { font-size: 10px; font-weight: 600; letter-spacing: 0.7px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .kpi-value { font-size: 22px; font-weight: 700; line-height: 1; margin-bottom: 5px; }
+    .kpi.k1 .kpi-value { color: var(--accent); }
+    .kpi.k2 .kpi-value { color: var(--green); }
+    .kpi.k3 .kpi-value { color: var(--orange); }
+    .kpi.k4 .kpi-value { color: var(--yellow); }
+    .kpi.k5 .kpi-value { color: var(--red); }
+
+    .kpi-sub { font-size: 11px; color: var(--muted); }
+    .kpi-sub .up   { color: #4caf81; }
+    .kpi-sub .down { color: var(--red); }
+
+    /* ── Chart grid ──────────────────────────────── */
+    .charts-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .charts-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .card-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .card-sub   { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+    .chart-wrap { position: relative; }
+
+    /* ── Table ───────────────────────────────────── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .table-head h2 { font-size: 13px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--surface2);
+      padding: 9px 14px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.5px;
+      text-transform: uppercase; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+    }
+    thead th:first-child { text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 9px 14px; font-size: 12px; text-align: right; }
+    tbody td:first-child { text-align: left; font-weight: 600; }
+
+    .actual-tag {
+      display: inline-block;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 2px 6px; border-radius: 8px;
+      background: rgba(108,99,255,0.2); color: var(--accent);
+      margin-left: 6px; vertical-align: middle; text-transform: uppercase;
+    }
+    .forecast-tag {
+      display: inline-block;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 2px 6px; border-radius: 8px;
+      background: rgba(123,126,158,0.15); color: var(--muted);
+      margin-left: 6px; vertical-align: middle; text-transform: uppercase;
+    }
+    .q-row { background: var(--surface2) !important; }
+    .q-row td { font-weight: 600; color: var(--muted); }
+
+    .beat { color: #4caf81; font-size: 11px; }
+    .miss { color: var(--red); font-size: 11px; }
+    .na   { color: var(--muted); }
+
+    /* ── ARR Goal Banner ─────────────────────────── */
+    .arr-banner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: 200px 1fr 130px;
+      gap: 24px;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .arr-banner::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+    }
+    .arr-eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 4px;
+    }
+    .arr-current {
+      font-size: 32px; font-weight: 800; line-height: 1;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .arr-current.empty { color: var(--muted); -webkit-text-fill-color: var(--muted); background: none; }
+    .arr-customers { font-size: 11px; color: var(--muted); margin-top: 5px; }
+    .arr-customers strong { color: var(--text); }
+
+    .arr-track-wrap { flex: 1; }
+    .arr-milestones {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--muted); margin-bottom: 6px;
+    }
+    .arr-track {
+      height: 12px; background: var(--surface2);
+      border-radius: 6px; overflow: hidden; position: relative;
+    }
+    .arr-fill {
+      height: 100%; border-radius: 6px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.8s cubic-bezier(.4,0,.2,1);
+      position: relative;
+    }
+    .arr-fill::after {
+      content: ''; position: absolute; top: 0; right: 0;
+      width: 4px; height: 100%;
+      background: rgba(255,255,255,0.4); border-radius: 0 6px 6px 0;
+    }
+    .arr-gap { font-size: 11px; color: var(--muted); margin-top: 6px; text-align: center; }
+    .arr-gap strong { color: var(--green); }
+
+    .arr-pct-box { text-align: center; }
+    .arr-pct {
+      font-size: 36px; font-weight: 800; line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .arr-pct.empty { color: var(--muted); -webkit-text-fill-color: var(--muted); background: none; font-size: 24px; }
+    .arr-pct-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Import button ───────────────────────────── */
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { opacity: 0.85; color: #fff; }
+
+    /* ── Toast ───────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface); border: 1px solid var(--accent);
+      border-radius: 10px; padding: 12px 20px; font-size: 13px;
+      opacity: 0; transform: translateY(10px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── Channel breakdown modal ─────────────────── */
+    .ch-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(26,29,46,0.35); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .ch-modal.show { display: flex; }
+    .ch-modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 28px;
+      width: 500px; max-width: 92vw;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+      animation: modalIn 0.15s ease;
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform:translateY(8px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .ch-modal-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .ch-modal-header h3 { font-size: 15px; font-weight: 700; }
+    .ch-modal-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .ch-modal-close {
+      background: none; border: none; font-size: 22px; line-height: 1;
+      cursor: pointer; color: var(--muted); padding: 0 2px; flex-shrink: 0;
+    }
+    .ch-modal-close:hover { color: var(--text); }
+
+    .ch-modal-row {
+      display: grid; grid-template-columns: 150px 1fr 88px 46px;
+      gap: 10px; align-items: center; margin-bottom: 10px;
+    }
+    .ch-modal-label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; }
+    .ch-dot-sm { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .ch-bar-track { background: var(--surface2); height: 6px; border-radius: 3px; overflow: hidden; }
+    .ch-bar-fill  { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+    .ch-modal-val { font-size: 12px; font-weight: 600; text-align: right; }
+    .ch-modal-pct { font-size: 11px; color: var(--muted); text-align: right; }
+
+    .ch-modal-total {
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px; font-weight: 700;
+    }
+    .ch-modal-total span { color: var(--muted); font-size: 11px; font-weight: 400; }
+
+    /* ── Quarterly KPIs ──────────────────────────── */
+    .q-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .q-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .q-kpi-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .q-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .q-status {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.4px;
+      padding: 2px 8px; border-radius: 10px; text-transform: uppercase;
+    }
+    .q-status.done     { background: rgba(0,212,170,0.12);  color: var(--green); }
+    .q-status.active   { background: rgba(108,99,255,0.15); color: var(--accent); }
+    .q-status.upcoming { background: rgba(123,126,158,0.12); color: var(--muted); }
+
+    .q-row-item {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .q-row-item:last-child { margin-bottom: 0; }
+    .q-metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .q-metric-val   { font-size: 13px; font-weight: 700; }
+    .q-metric-sub   { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    .q-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+    .q-progress-wrap { margin-top: 8px; }
+    .q-progress-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .q-progress-fill  { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+    @media (max-width: 1000px) {
+      main { padding: 16px; }
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .q-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-top, .charts-bottom { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span>ClerkMinutes</span> 2026 Monthly Dashboard</h1>
+  </div>
+  <div class="header-meta">
+    <div class="legend-pill"><div class="dot" style="background:var(--accent)"></div> Actual</div>
+    <div class="legend-pill"><div class="dot forecast" style="border-color:var(--muted)"></div> Forecast</div>
+    <button class="btn" id="btn-import-crm">Import CRM</button>
+    <input type="file" id="crm-input" accept=".csv,text/csv" style="display:none" />
+    <button class="btn primary" id="btn-import">Import forecast CSV</button>
+    <input type="file" id="csv-input" accept=".csv,text/csv" style="display:none" />
+  </div>
+</header>
+<div class="toast" id="toast"></div>
+
+<main>
+
+  <!-- ARR Goal Banner -->
+  <div class="arr-banner">
+    <div>
+      <div class="arr-eyebrow">🎯 Annual Recurring Revenue</div>
+      <div class="arr-current empty" id="arr-current">—</div>
+      <div class="arr-customers" id="arr-customers">Import CRM to calculate</div>
+    </div>
+    <div class="arr-track-wrap">
+      <div class="arr-milestones">
+        <span>$0</span><span>$250k</span><span>$500k</span><span>$750k</span><span>$1M goal</span>
+      </div>
+      <div class="arr-track"><div class="arr-fill" id="arr-fill" style="width:0%"></div></div>
+      <div class="arr-gap" id="arr-gap"></div>
+    </div>
+    <div class="arr-pct-box">
+      <div class="arr-pct empty" id="arr-pct">—</div>
+      <div class="arr-pct-label">of $1M goal</div>
+    </div>
+  </div>
+
+  <!-- Progress banner -->
+  <div class="progress-bar">
+    <span class="progress-label">2026 Year Progress · Apr actuals in</span>
+    <div class="bar-track"><div class="bar-fill" id="year-bar" style="width:33%"></div></div>
+    <span class="progress-pct" id="year-pct">4 / 12 months</span>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi k1">
+      <div class="kpi-label">YTD Revenue (Actual)</div>
+      <div class="kpi-value">$177,014</div>
+      <div class="kpi-sub"><span class="up">▲ 4.4%</span> vs forecast $169,500</div>
+    </div>
+    <div class="kpi k2">
+      <div class="kpi-label">YTD New Sales (Actual)</div>
+      <div class="kpi-value">111</div>
+      <div class="kpi-sub"><span class="down">▼ 1.8%</span> vs forecast 113</div>
+    </div>
+    <div class="kpi k3">
+      <div class="kpi-label">YTD Sign-ups (Actual)</div>
+      <div class="kpi-value">293</div>
+      <div class="kpi-sub"><span class="down">▼ 13.6%</span> vs forecast 339</div>
+    </div>
+    <div class="kpi k4">
+      <div class="kpi-label">Full-Year Revenue Target</div>
+      <div class="kpi-value">$670,500</div>
+      <div class="kpi-sub">26.4% achieved to date</div>
+    </div>
+    <div class="kpi k5">
+      <div class="kpi-label">Canceled (Q1 known)</div>
+      <div class="kpi-value">187</div>
+      <div class="kpi-sub">Jan 53 · Feb 52 · Mar 82</div>
+    </div>
+  </div>
+
+  <!-- Quarterly KPIs -->
+  <div class="q-kpi-grid" id="q-kpi-grid"></div>
+
+  <!-- Charts top -->
+  <div class="charts-top">
+    <div class="card">
+      <div class="card-title">Monthly Revenue — Actual vs Forecast</div>
+      <div class="card-sub" id="rev-chart-sub">Bars = actual · Line = forecast target</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="c-revenue"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Actual vs Forecast — Q1 Breakdown</div>
+      <div class="card-sub">Revenue performance per month</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="c-q1"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts bottom -->
+  <div class="charts-bottom">
+    <div class="card">
+      <div class="card-title">New Sales Count — Actual vs Forecast</div>
+      <div class="card-sub">Number of new sales per month</div>
+      <div class="chart-wrap" style="height:210px">
+        <canvas id="c-sales"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sign-ups — Actual vs Forecast</div>
+      <div class="card-sub">Trial sign-ups per month</div>
+      <div class="chart-wrap" style="height:210px">
+        <canvas id="c-signups"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-head">
+      <h2>2026 Monthly Detail</h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Rev Forecast</th>
+          <th>Rev Actual</th>
+          <th>vs Target</th>
+          <th>Sales Fcst</th>
+          <th>Sales Actual</th>
+          <th>Sign-ups Fcst</th>
+          <th>Sign-ups Actual</th>
+          <th>Canceled</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-body"></tbody>
+    </table>
+  </div>
+
+</main>
+
+<!-- Channel breakdown modal -->
+<div class="ch-modal" id="ch-modal">
+  <div class="ch-modal-box">
+    <div class="ch-modal-header">
+      <div>
+        <h3 id="ch-modal-title"></h3>
+        <div class="ch-modal-sub">Revenue by lead source · from CRM</div>
+      </div>
+      <button class="ch-modal-close" id="ch-modal-close">×</button>
+    </div>
+    <div id="ch-modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── ARR + Channel state ───────────────────────────────────────
+const ARR_GOAL = 1_000_000;
+const ARR_KEY  = 'clerkminutes_arr_v1';
+const CH_KEY   = 'clerkminutes_channels_v1';
+let arrState    = (() => { try { return JSON.parse(localStorage.getItem(ARR_KEY)) || null; } catch { return null; } })();
+let channelData = (() => { try { return JSON.parse(localStorage.getItem(CH_KEY)) || null; } catch { return null; } })();
+function saveChannels(data) { channelData = data; try { localStorage.setItem(CH_KEY, JSON.stringify(data)); } catch {} }
+
+function saveARR(state) {
+  arrState = state;
+  try { localStorage.setItem(ARR_KEY, JSON.stringify(state)); } catch {}
+}
+
+function renderARR() {
+  const cur  = document.getElementById('arr-current');
+  const cust = document.getElementById('arr-customers');
+  const fill = document.getElementById('arr-fill');
+  const gap  = document.getElementById('arr-gap');
+  const pct  = document.getElementById('arr-pct');
+
+  if (!arrState) {
+    cur.className  = 'arr-current empty'; cur.textContent  = '—';
+    pct.className  = 'arr-pct empty';     pct.textContent  = '—';
+    cust.textContent = 'Import CRM to calculate';
+    fill.style.width = '0%'; gap.textContent = '';
+    return;
+  }
+
+  const { arr, customers } = arrState;
+  const pctVal  = Math.min(arr / ARR_GOAL * 100, 100);
+  const toGoal  = Math.max(ARR_GOAL - arr, 0);
+
+  cur.className  = 'arr-current'; cur.textContent  = '$' + Math.round(arr).toLocaleString();
+  pct.className  = 'arr-pct';     pct.textContent  = pctVal.toFixed(1) + '%';
+  cust.innerHTML = `<strong>${customers}</strong> active customers`;
+  fill.style.width = pctVal + '%';
+  gap.innerHTML  = toGoal > 0
+    ? `<strong>$${Math.round(toGoal).toLocaleString()}</strong> to reach $1M`
+    : `🎉 <strong>$1M goal reached!</strong>`;
+}
+
+function parseCRMCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) throw new Error('File appears empty');
+
+  function parseLine(line) {
+    const fields = []; let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    fields.push(cur.trim());
+    return fields;
+  }
+
+  const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/['"]/g,'').trim());
+  const annualIdx = headers.findIndex(h => h.includes('annual'));
+  if (annualIdx === -1) throw new Error('Could not find "Annual $" column');
+  // Locate date + lead source columns dynamically (positions shifted in newer CRM exports)
+  const dateIdx = headers.findIndex(h => h.includes('created'));
+  const leadIdx = headers.findIndex(h => h.includes('lead') || h.includes('notes'));
+
+  let totalARR = 0, customers = 0, summaryARR = null;
+  const channelMonths = Array.from({length:12}, () => ({}));
+
+  lines.slice(1).forEach(line => {
+    const cols   = parseLine(line);
+    const rowNum = parseFloat((cols[0] || '').replace(/[^0-9.]/g, ''));
+
+    if (!isNaN(rowNum) && rowNum > 0) {
+      // Real customer row — add their Annual $
+      const n = parseFloat((cols[annualIdx] || '').replace(/[$,"]/g,'').replace(/,/g,'').trim());
+      if (!isNaN(n) && n > 0) { totalARR += n; customers++; }
+
+      // 2026 channel breakdown — use dynamic date column index
+      const dateStr = dateIdx !== -1 ? (cols[dateIdx] || '') : '';
+      const dm = dateStr.trim().match(/(\d+)\/(\d+)\/(\d+)/);
+      if (dm && parseInt(dm[3]) === 2026 && !isNaN(n) && n > 0) {
+        const mo = parseInt(dm[1]) - 1;
+        if (mo >= 0 && mo <= 11) {
+          const src = leadIdx !== -1 ? (cols[leadIdx] || '') : '';
+          const ch = classifyChannel(src);
+          channelMonths[mo][ch] = (channelMonths[mo][ch] || 0) + n;
+        }
+      }
+    } else {
+      // TOTAL row: col[6] = "TOTAL", col[7] = net ARR (HeyGov + ClerkMinutes - lost)
+      if ((cols[6] || '').trim().toUpperCase() === 'TOTAL') {
+        const v = parseFloat((cols[7] || '').replace(/[$,"]/g,''));
+        if (!isNaN(v) && v > 0) summaryARR = v;
+      }
+    }
+  });
+  // Prefer the pre-computed TOTAL from the spreadsheet; fall back to row-by-row sum
+  if (summaryARR !== null) totalARR = summaryARR;
+
+  return { arr: totalARR, customers, channelMonths };
+}
+
+const MONTHS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ── Channel definitions ──────────────────────────────────────
+const CHANNELS_DEF = [
+  { key:'coast',     label:'Coast-to-Coast',   color:'#6c63ff' },
+  { key:'referral',  label:'Referral Postcard', color:'#00b4d8' },
+  { key:'google',    label:'Google Ads',        color:'#ff9f43' },
+  { key:'evolution', label:'Evolution',         color:'#00a884' },
+  { key:'winback',   label:'Win-back',          color:'#e84545' },
+  { key:'pctest',    label:'Postcard Test',     color:'#ffd93d' },
+  { key:'custref',   label:'Customer Referral', color:'#a29bfe' },
+  { key:'other',     label:'Other / Unknown',   color:'#b0b7c6' },
+];
+
+function classifyChannel(src) {
+  const s = (src || '').trim().toLowerCase();
+  if (!s || s === '??' || s === '?' || s === 'none' || s === 'n/a') return 'other';
+  if (s.includes('coast-to-coast') || s.includes('coast to coast')) return 'coast';
+  if (s === 'clerkminutes trial started') return 'referral';
+  if (s.includes('evolution of clerk')) return 'evolution';
+  if (s.includes('google ads')) return 'google';
+  if (s.includes('win back') || s.includes('win-back')) return 'winback';
+  if (s.includes('postcard') && (s.includes('arlene') || s.includes('atanas') || s.includes('feb 2'))) return 'pctest';
+  if (s.includes('referral') && !s.includes('win')) return 'custref';
+  return 'other';
+}
+
+const QUARTERS = [
+  { label:'Q1', months:[0,1,2] },
+  { label:'Q2', months:[3,4,5] },
+  { label:'Q3', months:[6,7,8] },
+  { label:'Q4', months:[9,10,11] },
+];
+
+// ── Data (default = what was hard-coded before) ──────────────
+let D = {
+  revFcst:     [37500,40500,43500,48000,52500,57000,63000,69000,75000,67500,61500,55500],
+  revActual:   [53865,42281,37860,43008,null,null,null,null,null,null,null,null],
+  salesFcst:   [25,27,29,32,35,38,42,46,50,45,41,37],
+  salesActual: [32,28,25,26,null,null,null,null,null,null,null,null],
+  signupsFcst: [75,81,87,96,105,114,126,138,150,135,123,111],
+  signupsAct:  [59,79,89,66,null,null,null,null,null,null,null,null],
+  canceled:    [53,52,82,null,null,null,null,null,null,null,null,null],
+};
+
+// ── Helpers ──────────────────────────────────────────────────
+function fmt$(n)  { return n==null ? '<span class="na">—</span>' : '$'+Number(n).toLocaleString(); }
+function fmtN(n)  { return n==null ? '<span class="na">—</span>' : Number(n).toLocaleString(); }
+function fmtDiff(actual, fcst) {
+  if (actual == null || fcst == null) return '<span class="na">—</span>';
+  const pct = ((actual - fcst) / fcst * 100).toFixed(1);
+  return `<span class="${pct >= 0 ? 'beat':'miss'}">${pct >= 0 ? '+':''}${pct}%</span>`;
+}
+
+function showToast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = ok ? 'var(--accent)' : 'var(--red)';
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Chart defaults ───────────────────────────────────────────
+const BASE = {
+  responsive:true, maintainAspectRatio:false,
+  interaction:{ intersect:false, mode:'index' },
+  plugins:{
+    legend:{ labels:{ color:'#6b7280', font:{size:11}, boxWidth:12, padding:14 } },
+    tooltip:{ backgroundColor:'#ffffff', borderColor:'#dde2f0', borderWidth:1, titleColor:'#1a1d2e', bodyColor:'#6b7280', padding:10 }
+  },
+  scales:{
+    x:{ grid:{color:'#edf0f8'}, ticks:{color:'#6b7280', font:{size:10}, maxRotation:45} },
+    y:{ grid:{color:'#edf0f8'}, ticks:{color:'#6b7280', font:{size:10}} }
+  }
+};
+function deepBase() { return JSON.parse(JSON.stringify(BASE)); }
+function mkCtx(id)  { return document.getElementById(id).getContext('2d'); }
+
+// ── Delta + total labels plugin (stack-aware) ────────────────
+const deltaLabelsPlugin = {
+  id: 'deltaLabels',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const fstDs  = chart.data.datasets.find(d => d.type === 'line');
+    const baseY  = chart.scales.y?.getPixelForValue(0); // x-axis line
+    const nMonths = chart.data.labels.length;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    for (let i = 0; i < nMonths; i++) {
+      let total = 0, topY = null, xPos = null;
+      chart.data.datasets.forEach((ds, di) => {
+        const meta = chart.getDatasetMeta(di);
+        if (meta.type !== 'bar') return;
+        const val = ds.data[i];
+        if (!val) return;
+        total += val;
+        const bar = meta.data[i];
+        if (bar) {
+          if (topY === null || bar.y < topY) topY = bar.y;
+          if (xPos === null) xPos = bar.x;
+        }
+      });
+      if (!total || topY === null || xPos === null) continue;
+
+      // ── +/- delta label above the bar ──────────────────────
+      if (fstDs?.data[i] != null) {
+        const delta = total - fstDs.data[i];
+        const sign  = delta >= 0 ? '+$' : '-$';
+        ctx.font      = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = delta >= 0 ? '#00a884' : '#e84545';
+        ctx.fillText(sign + Math.abs(Math.round(delta)).toLocaleString(), xPos, topY - 6);
+      }
+
+    }
+    ctx.restore();
+  }
+};
+
+// ── Revenue chart dataset builder ────────────────────────────
+const FCST_LINE_DS = () => ({
+  label:'Forecast Revenue', data:[], type:'line',
+  borderColor:'rgba(255,217,61,0.8)', backgroundColor:'rgba(255,217,61,0.04)',
+  borderDash:[5,4], borderWidth:2, pointBackgroundColor:'rgba(255,217,61,0.8)',
+  pointRadius:3, tension:0.35, fill:false, order:1
+});
+
+function updateRevenueChart() {
+  const sub = document.getElementById('rev-chart-sub');
+  if (!channelData) {
+    if (sub) sub.textContent = 'Bars = actual · Line = forecast target';
+    document.getElementById('c-revenue').style.cursor = 'default';
+    // Simple solid-bar mode
+    chartRevenue.data.datasets = [
+      { label:'Actual Revenue', data: D.revActual,
+        backgroundColor: MONTHS.map((_,i) => D.revActual[i] != null ? 'rgba(108,99,255,0.75)' : 'rgba(108,99,255,0.15)'),
+        borderColor:'rgba(108,99,255,0.9)', borderWidth:1, borderRadius:4, order:2, stack:'actual' },
+      { ...FCST_LINE_DS(), data: D.revFcst }
+    ];
+  } else {
+    if (sub) sub.textContent = 'Stacked by channel (from CRM) · Line = forecast · click bar for details';
+    document.getElementById('c-revenue').style.cursor = 'pointer';
+    // Stacked channel mode
+    const chDs = CHANNELS_DEF.map(ch => ({
+      label: ch.label,
+      data: channelData.months.map(m => m[ch.key] > 0 ? m[ch.key] : null),
+      backgroundColor: ch.color + 'cc',
+      borderColor: ch.color,
+      borderWidth: 0, borderRadius: 2, order: 2, stack: 'actual', type: 'bar',
+    }));
+    chartRevenue.data.datasets = [...chDs, { ...FCST_LINE_DS(), data: D.revFcst }];
+  }
+  chartRevenue.update('none');
+}
+
+// ── Channel breakdown modal ───────────────────────────────────
+function showChannelModal(monthIdx) {
+  if (!channelData) return;
+  const monthData = channelData.months[monthIdx] || {};
+  const total = Object.values(monthData).reduce((s,v) => s+v, 0);
+  if (!total) return;
+
+  document.getElementById('ch-modal-title').textContent =
+    `${MONTHS_FULL[monthIdx]} 2026 — Channel Breakdown`;
+
+  const sorted = CHANNELS_DEF
+    .map(ch => ({ ...ch, val: monthData[ch.key] || 0 }))
+    .filter(c => c.val > 0)
+    .sort((a,b) => b.val - a.val);
+
+  document.getElementById('ch-modal-body').innerHTML =
+    sorted.map(ch => {
+      const pct = (ch.val / total * 100).toFixed(1);
+      return `<div class="ch-modal-row">
+        <div class="ch-modal-label">
+          <span class="ch-dot-sm" style="background:${ch.color}"></span>${ch.label}
+        </div>
+        <div class="ch-bar-track">
+          <div class="ch-bar-fill" style="width:${pct}%;background:${ch.color}cc"></div>
+        </div>
+        <div class="ch-modal-val">$${Math.round(ch.val).toLocaleString()}</div>
+        <div class="ch-modal-pct">${pct}%</div>
+      </div>`;
+    }).join('') +
+    `<div class="ch-modal-total">
+      <span>Total for ${MONTHS[monthIdx]}</span>
+      $${Math.round(total).toLocaleString()}
+    </div>`;
+
+  document.getElementById('ch-modal').classList.add('show');
+}
+
+document.getElementById('ch-modal-close').addEventListener('click', () =>
+  document.getElementById('ch-modal').classList.remove('show'));
+document.getElementById('ch-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+
+// ── Create charts (store refs for later updates) ─────────────
+const chartRevenue = new Chart(mkCtx('c-revenue'), {
+  type:'bar',
+  plugins: [deltaLabelsPlugin],
+  data:{ labels:MONTHS, datasets:[
+    { label:'Actual Revenue', data:[], backgroundColor:[], borderColor:'rgba(108,99,255,0.9)', borderWidth:1, borderRadius:4, order:2, stack:'actual' },
+    { label:'Forecast Revenue', data:[], type:'line', borderColor:'rgba(255,217,61,0.8)', backgroundColor:'rgba(255,217,61,0.04)',
+      borderDash:[5,4], borderWidth:2, pointBackgroundColor:'rgba(255,217,61,0.8)', pointRadius:3, tension:0.35, fill:false, order:1 }
+  ]},
+  options:{
+    ...deepBase(),
+    layout:{ padding:{ top:22, bottom:4 } },
+    plugins:{
+      legend: BASE.plugins.legend,
+      tooltip:{
+        backgroundColor:'#ffffff', borderColor:'#dde2f0', borderWidth:1,
+        titleColor:'#1a1d2e', bodyColor:'#6b7280', padding:10,
+        callbacks:{
+          label(ctx) {
+            if (ctx.dataset.type === 'line') {
+              return ` Forecast  $${Math.round(ctx.parsed.y || 0).toLocaleString()}`;
+            }
+            // Show total once on the first bar dataset; hide all others
+            if (ctx.datasetIndex !== 0) return [];
+            if (channelData) {
+              const m = channelData.months[ctx.dataIndex] || {};
+              const total = Object.values(m).reduce((s, v) => s + v, 0);
+              return total > 0 ? ` Total  $${Math.round(total).toLocaleString()}` : [];
+            }
+            const v = ctx.parsed.y;
+            return v ? ` Total  $${Math.round(v).toLocaleString()}` : [];
+          }
+        }
+      }
+    },
+    scales:{
+      x:{ ...BASE.scales.x, stacked:true },
+      y:{ ...BASE.scales.y, stacked:true, ticks:{ ...BASE.scales.y.ticks, callback: v=>'$'+(v/1000).toFixed(0)+'k' } }
+    }
+  }
+});
+
+document.getElementById('c-revenue').addEventListener('click', evt => {
+  if (!channelData) return;
+  const hits = chartRevenue.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+  if (!hits.length) return;
+  showChannelModal(hits[0].index);
+});
+
+const chartComparison = new Chart(mkCtx('c-q1'), {
+  type:'bar',
+  data:{ labels:[], datasets:[
+    { label:'Forecast', data:[], backgroundColor:'rgba(123,126,158,0.25)', borderColor:'rgba(123,126,158,0.5)', borderWidth:1, borderRadius:4 },
+    { label:'Actual',   data:[], backgroundColor:[], borderColor:[], borderWidth:1, borderRadius:4 }
+  ]},
+  options:{ ...deepBase(), scales:{ x:BASE.scales.x, y:{ ...BASE.scales.y, ticks:{ ...BASE.scales.y.ticks, callback: v=>'$'+(v/1000).toFixed(0)+'k' } } } }
+});
+
+const chartSales = new Chart(mkCtx('c-sales'), {
+  type:'bar',
+  data:{ labels:MONTHS, datasets:[
+    { label:'Actual Sales',   data:[], backgroundColor:[], borderColor:'rgba(255,107,107,0.9)', borderWidth:1, borderRadius:4, order:2 },
+    { label:'Forecast Sales', data:[], type:'line', borderColor:'rgba(255,217,61,0.8)', borderDash:[5,4], borderWidth:2,
+      pointBackgroundColor:'rgba(255,217,61,0.8)', pointRadius:3, tension:0.35, fill:false, order:1 }
+  ]},
+  options: deepBase()
+});
+
+const chartSignups = new Chart(mkCtx('c-signups'), {
+  type:'bar',
+  data:{ labels:MONTHS, datasets:[
+    { label:'Actual Sign-ups',   data:[], backgroundColor:[], borderColor:'rgba(0,212,170,0.9)', borderWidth:1, borderRadius:4, order:2 },
+    { label:'Forecast Sign-ups', data:[], type:'line', borderColor:'rgba(255,217,61,0.8)', borderDash:[5,4], borderWidth:2,
+      pointBackgroundColor:'rgba(255,217,61,0.8)', pointRadius:3, tension:0.35, fill:false, order:1 }
+  ]},
+  options: deepBase()
+});
+
+// ── Render all from D ────────────────────────────────────────
+function renderAll() {
+  const actualCount = D.revActual.filter(v => v != null).length;
+
+  // Progress banner
+  document.getElementById('year-bar').style.width = (actualCount / 12 * 100) + '%';
+  document.getElementById('year-pct').textContent = `${actualCount} / 12 months`;
+  document.querySelector('.progress-label').textContent =
+    `2026 Year Progress · ${MONTHS[actualCount-1] || '—'} actuals in`;
+
+  // Revenue chart (channel-aware)
+  updateRevenueChart();
+
+  // Comparison chart — only months with actuals
+  const actMonths = MONTHS.filter((_,i) => D.revActual[i] != null);
+  const actFcst   = D.revFcst.filter((_,i)    => D.revActual[i] != null);
+  const actRev    = D.revActual.filter(v => v != null);
+  chartComparison.data.labels = actMonths;
+  chartComparison.data.datasets[0].data = actFcst;
+  chartComparison.data.datasets[1].data = actRev;
+  chartComparison.data.datasets[1].backgroundColor = actRev.map((v,i) =>
+    v >= actFcst[i] ? 'rgba(0,212,170,0.7)' : 'rgba(255,107,107,0.7)');
+  chartComparison.data.datasets[1].borderColor = actRev.map((v,i) =>
+    v >= actFcst[i] ? 'rgba(0,212,170,1)' : 'rgba(255,107,107,1)');
+  chartComparison.options.plugins.title = {
+    display: true,
+    text: `${actMonths.length} months with actuals`,
+    color:'#7b7e9e', font:{size:11}
+  };
+  chartComparison.update('none');
+
+  // Sales chart
+  chartSales.data.datasets[0].data = D.salesActual;
+  chartSales.data.datasets[0].backgroundColor = MONTHS.map((_,i) =>
+    D.salesActual[i] != null ? 'rgba(255,107,107,0.75)' : 'rgba(255,107,107,0.15)');
+  chartSales.data.datasets[1].data = D.salesFcst;
+  chartSales.update('none');
+
+  // Sign-ups chart
+  chartSignups.data.datasets[0].data = D.signupsAct;
+  chartSignups.data.datasets[0].backgroundColor = MONTHS.map((_,i) =>
+    D.signupsAct[i] != null ? 'rgba(0,212,170,0.75)' : 'rgba(0,212,170,0.15)');
+  chartSignups.data.datasets[1].data = D.signupsFcst;
+  chartSignups.update('none');
+
+  // KPIs
+  const ytdRevAct  = D.revActual.reduce((s,v)    => s + (v??0), 0);
+  const ytdRevFcst = D.revFcst.slice(0, actualCount).reduce((s,v) => s + v, 0);
+  const ytdSalesAct  = D.salesActual.reduce((s,v)  => s + (v??0), 0);
+  const ytdSalesFcst = D.salesFcst.slice(0, actualCount).reduce((s,v) => s + v, 0);
+  const ytdSuAct   = D.signupsAct.reduce((s,v)    => s + (v??0), 0);
+  const ytdSuFcst  = D.signupsFcst.slice(0, actualCount).reduce((s,v) => s + v, 0);
+  const fullYearFcst = D.revFcst.reduce((s,v) => s + v, 0);
+  const totalCanceled = D.canceled.reduce((s,v) => s + (v??0), 0);
+
+  function kpiDelta(act, fcst) {
+    if (!fcst) return '';
+    const p = ((act-fcst)/fcst*100).toFixed(1);
+    const cls = p >= 0 ? 'up' : 'down';
+    return `<span class="${cls}">${p>=0?'▲':'▼'} ${Math.abs(p)}%</span>`;
+  }
+
+  document.querySelector('.kpi.k1 .kpi-value').textContent = '$' + ytdRevAct.toLocaleString();
+  document.querySelector('.kpi.k1 .kpi-sub').innerHTML =
+    `${kpiDelta(ytdRevAct, ytdRevFcst)} vs forecast $${ytdRevFcst.toLocaleString()}`;
+
+  document.querySelector('.kpi.k2 .kpi-value').textContent = ytdSalesAct;
+  document.querySelector('.kpi.k2 .kpi-sub').innerHTML =
+    `${kpiDelta(ytdSalesAct, ytdSalesFcst)} vs forecast ${ytdSalesFcst}`;
+
+  document.querySelector('.kpi.k3 .kpi-value').textContent = ytdSuAct;
+  document.querySelector('.kpi.k3 .kpi-sub').innerHTML =
+    `${kpiDelta(ytdSuAct, ytdSuFcst)} vs forecast ${ytdSuFcst}`;
+
+  document.querySelector('.kpi.k4 .kpi-value').textContent = '$' + fullYearFcst.toLocaleString();
+  const pctDone = ytdRevAct ? (ytdRevAct/fullYearFcst*100).toFixed(1) : 0;
+  document.querySelector('.kpi.k4 .kpi-sub').textContent = `${pctDone}% achieved to date`;
+
+  document.querySelector('.kpi.k5 .kpi-value').textContent = totalCanceled || '—';
+  const cancelParts = D.canceled.map((v,i) => v!=null ? `${MONTHS[i]} ${v}` : null).filter(Boolean);
+  document.querySelector('.kpi.k5 .kpi-sub').textContent = cancelParts.join(' · ') || 'No data';
+
+  // Quarterly KPIs
+  const qColors = ['#6c63ff','#00d4aa','#ff9f43','#ffd93d'];
+  const qGrid = document.getElementById('q-kpi-grid');
+  qGrid.innerHTML = QUARTERS.map((q, qi) => {
+    const revFcst   = q.months.reduce((s,j) => s + (D.revFcst[j]   ?? 0), 0);
+    const salesFcst = q.months.reduce((s,j) => s + (D.salesFcst[j] ?? 0), 0);
+    const suFcst    = q.months.reduce((s,j) => s + (D.signupsFcst[j] ?? 0), 0);
+    const revAct    = q.months.reduce((s,j) => s + (D.revActual[j]   ?? 0), 0);
+    const salesAct  = q.months.reduce((s,j) => s + (D.salesActual[j] ?? 0), 0);
+    const suAct     = q.months.reduce((s,j) => s + (D.signupsAct[j]  ?? 0), 0);
+    const hasAct    = q.months.some(j  => D.revActual[j] != null);
+    const allAct    = q.months.every(j => D.revActual[j] != null);
+    const col       = qColors[qi];
+
+    const status    = allAct ? 'done' : hasAct ? 'active' : 'upcoming';
+    const statusLbl = allAct ? 'Complete' : hasAct ? 'In Progress' : 'Upcoming';
+
+    const revPct    = hasAct && revFcst  ? (revAct  / revFcst  * 100).toFixed(0) : null;
+    const salesPct  = hasAct && salesFcst? (salesAct/ salesFcst* 100).toFixed(0) : null;
+
+    function diff(act, fcst) {
+      if (!act || !fcst) return '';
+      const p = ((act - fcst) / fcst * 100).toFixed(1);
+      return `<span style="color:${p>=0?'#4caf81':'var(--red)'}; font-size:10px; margin-left:5px">${p>=0?'▲':'▼'}${Math.abs(p)}%</span>`;
+    }
+
+    return `<div class="q-kpi" style="border-top: 3px solid ${col}20; position:relative; overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${col}"></div>
+      <div class="q-kpi-head">
+        <span class="q-label" style="color:${col}">${q.label} 2026</span>
+        <span class="q-status ${status}">${statusLbl}</span>
+      </div>
+
+      <div class="q-row-item">
+        <span class="q-metric-label">Revenue</span>
+        <div style="text-align:right">
+          <span class="q-metric-val" style="color:${col}">${hasAct ? '$'+revAct.toLocaleString() : '—'}</span>
+          ${diff(revAct, revFcst)}
+          <div class="q-metric-sub">target $${revFcst.toLocaleString()}</div>
+        </div>
+      </div>
+
+      <hr class="q-divider"/>
+
+      <div class="q-row-item">
+        <span class="q-metric-label">New Sales</span>
+        <div style="text-align:right">
+          <span style="font-size:12px;font-weight:700;color:var(--text)">${hasAct ? salesAct : '—'}</span>
+          ${diff(salesAct, salesFcst)}
+          <div class="q-metric-sub">target ${salesFcst}</div>
+        </div>
+      </div>
+
+      <div class="q-row-item" style="margin-top:4px">
+        <span class="q-metric-label">Sign-ups</span>
+        <div style="text-align:right">
+          <span style="font-size:12px;font-weight:700;color:var(--text)">${hasAct ? suAct : '—'}</span>
+          ${diff(suAct, suFcst)}
+          <div class="q-metric-sub">target ${suFcst}</div>
+        </div>
+      </div>
+
+      ${revPct !== null ? `
+      <div class="q-progress-wrap">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:10px;color:var(--muted)">Revenue progress</span>
+          <span style="font-size:10px;font-weight:600;color:${col}">${revPct}%</span>
+        </div>
+        <div class="q-progress-track">
+          <div class="q-progress-fill" style="width:${Math.min(revPct,100)}%;background:${col}"></div>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Table
+  let html = '';
+  let qIdx = 0;
+  MONTHS.forEach((m, i) => {
+    const isActual = D.revActual[i] != null || D.salesActual[i] != null;
+    const tag = isActual ? '<span class="actual-tag">actual</span>' : '<span class="forecast-tag">fcst</span>';
+    html += `<tr>
+      <td>${m} 2026${tag}</td>
+      <td>${fmt$(D.revFcst[i])}</td>
+      <td>${fmt$(D.revActual[i])}</td>
+      <td>${fmtDiff(D.revActual[i], D.revFcst[i])}</td>
+      <td>${fmtN(D.salesFcst[i])}</td>
+      <td>${fmtN(D.salesActual[i])}</td>
+      <td>${fmtN(D.signupsFcst[i])}</td>
+      <td>${fmtN(D.signupsAct[i])}</td>
+      <td>${fmtN(D.canceled[i])}</td>
+    </tr>`;
+    if ([2,5,8,11].includes(i)) {
+      const q = QUARTERS[qIdx++];
+      const qRF  = q.months.reduce((s,j) => s + D.revFcst[j], 0);
+      const qRA  = q.months.reduce((s,j) => s + (D.revActual[j]??0), 0);
+      const qSF  = q.months.reduce((s,j) => s + D.salesFcst[j], 0);
+      const qSA  = q.months.reduce((s,j) => s + (D.salesActual[j]??0), 0);
+      const qUF  = q.months.reduce((s,j) => s + D.signupsFcst[j], 0);
+      const qUA  = q.months.reduce((s,j) => s + (D.signupsAct[j]??0), 0);
+      const qC   = q.months.reduce((s,j) => s + (D.canceled[j]??0), 0);
+      const hasA = q.months.some(j => D.revActual[j] != null);
+      html += `<tr class="q-row">
+        <td>${q.label} Total</td>
+        <td>${fmt$(qRF)}</td>
+        <td>${hasA ? fmt$(qRA) : '<span class="na">—</span>'}</td>
+        <td>${hasA ? fmtDiff(qRA, qRF) : '<span class="na">—</span>'}</td>
+        <td>${fmtN(qSF)}</td>
+        <td>${hasA ? fmtN(qSA) : '<span class="na">—</span>'}</td>
+        <td>${fmtN(qUF)}</td>
+        <td>${hasA ? fmtN(qUA) : '<span class="na">—</span>'}</td>
+        <td>${qC > 0 ? fmtN(qC) : '<span class="na">—</span>'}</td>
+      </tr>`;
+    }
+  });
+  document.getElementById('tbl-body').innerHTML = html;
+}
+
+// ── CSV parser for the forecast sheet ───────────────────────
+function parseForecastCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+
+  function parseLine(line) {
+    const fields = []; let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    fields.push(cur.trim());
+    return fields;
+  }
+
+  function cleanNum(v) {
+    if (!v || v === 'n/a' || v === 'N/A' || v === '#REF!') return null;
+    const n = parseFloat(v.replace(/[$,%]/g,'').replace(/,/g,'').trim());
+    return isNaN(n) ? null : n;
+  }
+
+  // Header row: find which column index each month maps to
+  const headers = parseLine(lines[0]);
+  // Build month→colIndex map by matching full month names
+  const monthCols = MONTHS_FULL.map(mn => {
+    const idx = headers.findIndex(h => h.trim().toLowerCase() === mn.toLowerCase());
+    return idx; // -1 if not found
+  });
+
+  if (monthCols.every(i => i === -1)) {
+    throw new Error('Could not find month columns in header row');
+  }
+
+  // Parse all data rows into a lookup by metric name
+  const rowMap = {};
+  lines.slice(1).forEach(line => {
+    const cols = parseLine(line);
+    const key = cols[0].replace(/\s+/g,' ').trim();
+    if (key) rowMap[key] = cols;
+  });
+
+  function extractRow(row, defaultVal = null) {
+    return monthCols.map(ci => ci === -1 ? defaultVal : cleanNum(row?.[ci]));
+  }
+
+  // Match rows flexibly
+  function findRow(...keywords) {
+    const k = Object.keys(rowMap);
+    for (const kw of keywords) {
+      const found = k.find(key => key.toLowerCase().includes(kw.toLowerCase()));
+      if (found) return rowMap[found];
+    }
+    return null;
+  }
+
+  return {
+    revActual:   extractRow(findRow('New Sales actual ($)')),
+    salesActual: extractRow(findRow('New Sales actual (#)')),
+    signupsAct:  extractRow(findRow('Sign ups actual (#)')),
+    revFcst:     extractRow(findRow('New Sales Forecast ($)')),
+    salesFcst:   extractRow(findRow('New Sales Forecast (#)')),
+    signupsFcst: extractRow(findRow('Sign ups (#)')),
+    canceled:    extractRow(findRow('Canceled (#)')),
+  };
+}
+
+// ── Import wiring ─────────────────────────────────────────────
+document.getElementById('btn-import').addEventListener('click', () => {
+  document.getElementById('csv-input').value = '';
+  document.getElementById('csv-input').click();
+});
+
+document.getElementById('csv-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = parseForecastCSV(e.target.result);
+      // Merge: keep existing values where parsed gives null (forecast rows always present)
+      D = {
+        revFcst:     parsed.revFcst.map((v,i)     => v ?? D.revFcst[i]),
+        revActual:   parsed.revActual,
+        salesFcst:   parsed.salesFcst.map((v,i)   => v ?? D.salesFcst[i]),
+        salesActual: parsed.salesActual,
+        signupsFcst: parsed.signupsFcst.map((v,i) => v ?? D.signupsFcst[i]),
+        signupsAct:  parsed.signupsAct,
+        canceled:    parsed.canceled,
+      };
+      renderAll();
+      const actCount = D.revActual.filter(v => v != null).length;
+      showToast(`✓ Imported — ${actCount} months of actuals loaded`);
+    } catch(err) {
+      showToast('Import failed: ' + err.message, false);
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+});
+
+// ── CRM import ────────────────────────────────────────────────
+document.getElementById('btn-import-crm').addEventListener('click', () => {
+  document.getElementById('crm-input').value = '';
+  document.getElementById('crm-input').click();
+});
+
+document.getElementById('crm-input').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const result = parseCRMCSV(e.target.result);
+      saveARR(result);
+      const ch2026 = result.channelMonths.reduce((s,m) => s + Object.values(m).reduce((a,b)=>a+b,0), 0);
+      if (ch2026 > 0) {
+        saveChannels({ months: result.channelMonths });
+      } else {
+        // No 2026 channel data found — clear stale channel data so chart stays in simple mode
+        channelData = null;
+        try { localStorage.removeItem(CH_KEY); } catch {}
+      }
+      renderARR();
+      renderAll(); // rebuilds revenue chart with channel stacks
+      showToast(`✓ CRM imported — ${result.customers} customers · $${Math.round(result.arr).toLocaleString()} ARR${ch2026 > 0 ? ' · $' + Math.round(ch2026).toLocaleString() + ' in 2026 channel data' : ''}`);
+    } catch (err) {
+      showToast('CRM import failed: ' + err.message, false);
+    }
+  };
+  reader.readAsText(file);
+});
+
+// ── Initial render ────────────────────────────────────────────
+renderARR();
+renderAll();
+</script>
+</body>
+</html>
