@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClerkMinutes Dashboards</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #283549;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 48px 24px;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    header { margin-bottom: 40px; text-align: center; }
+    h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+    header p { color: var(--text-muted); margin-top: 8px; font-size: 1rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      display: block;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+      transform: translateY(-3px);
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card p { color: var(--text-muted); font-size: 0.9rem; }
+    .card .arrow { color: var(--accent); font-size: 1rem; }
+    footer { margin-top: 48px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ClerkMinutes Dashboards</h1>
+      <p>Hosted BI dashboards for ClerkMinutes &amp; HeyGov</p>
+    </header>
+
+    <div class="grid">
+      <a class="card" href="clerkminutes-monthly/">
+        <h2>ClerkMinutes 2026 Monthly <span class="arrow">&rarr;</span></h2>
+        <p>Monthly tracking view for 2026.</p>
+      </a>
+
+      <a class="card" href="clerkminutes-lifetime/">
+        <h2>Lifetime Overview <span class="arrow">&rarr;</span></h2>
+        <p>All-time ClerkMinutes performance.</p>
+      </a>
+
+      <a class="card" href="heygov-dashboard/dashboard.html">
+        <h2>HeyGov ARR &mdash; Road to $1M <span class="arrow">&rarr;</span></h2>
+        <p>Annual recurring revenue dashboard.</p>
+      </a>
+
+      <a class="card" href="channel-breakdown-example/channel-breakdown-example.html">
+        <h2>Channel Breakdown <span class="arrow">&rarr;</span></h2>
+        <p>Prototype channel-by-channel breakdown.</p>
+      </a>
+
+      <a class="card" href="Growth%20Strategy%20System/">
+        <h2>Cross-department Strategy <span class="arrow">&rarr;</span></h2>
+        <p>ClerkMinutes growth strategy system.</p>
+      </a>
+    </div>
+
+    <footer>
+      Updated automatically from the <code>clerkminutes-dashboards</code> repository.
+    </footer>
+  </div>
+</body>
+</html>
