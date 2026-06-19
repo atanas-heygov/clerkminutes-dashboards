@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Custom Tier Tracker — ClerkMinutes</title>
+	<style>
+		:root {
+			--bg: #0f172a;
+			--bg-card: #1e293b;
+			--bg-card-2: #283549;
+			--border: #334155;
+			--text: #f1f5f9;
+			--text-muted: #94a3b8;
+			--text-dim: #64748b;
+			--accent: #38bdf8;
+			--green: #34d399;
+			--red: #f87171;
+			--amber: #fbbf24;
+			--blue: #60a5fa;
+		}
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			background: var(--bg);
+			color: var(--text);
+			min-height: 100vh;
+			padding: 32px 24px 80px;
+			line-height: 1.5;
+		}
+		.wrap { max-width: 1240px; margin: 0 auto; }
+		a { color: var(--accent); }
+		.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+		h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+		.sub { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
+		.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+		button, .btn {
+			font: inherit; cursor: pointer; border-radius: 9px; border: 1px solid var(--border);
+			background: var(--bg-card); color: var(--text); padding: 8px 14px; font-size: 0.88rem;
+			transition: background 0.15s, border-color 0.15s;
+		}
+		button:hover, .btn:hover { background: var(--bg-card-2); border-color: var(--accent); }
+		button.primary { background: var(--accent); color: #07263a; border-color: var(--accent); font-weight: 600; }
+		button.primary:hover { filter: brightness(1.08); }
+		button.ghost { background: transparent; }
+		button.danger { color: var(--red); border-color: transparent; background: transparent; padding: 4px 8px; }
+		button.linkish { background: transparent; border-color: transparent; color: var(--accent); padding: 4px 8px; }
+
+		.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 16px; }
+		.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+		.card .label { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+		.card .value { font-size: 1.7rem; font-weight: 700; margin-top: 4px; }
+		.card .hint { color: var(--text-dim); font-size: 0.78rem; margin-top: 2px; }
+		.card.hl { border-color: var(--green); }
+		.green { color: var(--green); }
+		.red { color: var(--red); }
+		.amber { color: var(--amber); }
+
+		.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+			background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.4); border-radius: 12px;
+			padding: 12px 18px; margin-bottom: 24px; }
+		.banner .big { font-size: 1.5rem; font-weight: 700; }
+
+		.panels { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; margin-bottom: 16px; }
+		.panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+		.panel h3 { font-size: 0.92rem; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+		.panel h3 small { color: var(--text-dim); font-weight: 400; }
+		.panel-body { padding: 12px 16px; }
+		.feature-panel { margin-bottom: 24px; }
+
+		table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+		th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+		th { color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.02em; position: sticky; top: 0; background: var(--bg-card); }
+		td.num, th.num { text-align: right; }
+		tbody tr:hover { background: var(--bg-card-2); }
+		.tablewrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: auto; max-height: 70vh; }
+
+		.bar { height: 8px; border-radius: 6px; background: var(--border); overflow: hidden; }
+		.bar > span { display: block; height: 100%; }
+		.rowline { margin-bottom: 10px; }
+		.rowline .top { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; }
+
+		.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+		.b-green { background: rgba(52,211,153,0.16); color: var(--green); }
+		.b-red { background: rgba(248,113,113,0.16); color: var(--red); }
+		.b-gray { background: rgba(148,163,184,0.16); color: var(--text-muted); }
+		.b-blue { background: rgba(96,165,250,0.16); color: var(--blue); }
+		.b-amber { background: rgba(251,191,36,0.16); color: var(--amber); }
+		.tag { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 0.72rem; background: var(--bg-card-2); color: var(--text-muted); margin: 0 3px 3px 0; }
+		.muted { color: var(--text-dim); }
+
+		.filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 14px; }
+		.filters input, .filters select { font: inherit; background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 9px; padding: 7px 11px; font-size: 0.85rem; }
+		.filters input { min-width: 200px; }
+
+		.empty { text-align: center; color: var(--text-muted); padding: 48px 16px; }
+
+		/* modal */
+		.overlay { position: fixed; inset: 0; background: rgba(2,6,23,0.7); display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow: auto; z-index: 50; }
+		.overlay.show { display: flex; }
+		.modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 640px; }
+		.modal h2 { font-size: 1.1rem; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+		.modal .form { padding: 18px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+		.modal .form .full { grid-column: 1 / -1; }
+		.modal label { display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px; }
+		.modal input, .modal select, .modal textarea { width: 100%; font: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px; font-size: 0.85rem; }
+		.modal .features { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+		.modal .features label { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 0.82rem; margin: 0; cursor: pointer; }
+		.modal .features input { width: auto; }
+		.modal .foot { display: flex; justify-content: space-between; padding: 16px 20px; border-top: 1px solid var(--border); }
+		footer { margin-top: 40px; text-align: center; color: var(--text-dim); font-size: 0.8rem; }
+		@media (max-width: 860px) { .panels { grid-template-columns: 1fr; } .modal .form { grid-template-columns: 1fr; } }
+	</style>
+</head>
+<body>
+	<div class="wrap">
+		<div class="topbar">
+			<div>
+				<h1>Custom Tier Tracker</h1>
+			</div>
+			<div class="actions">
+				<input type="file" id="import" accept=".csv,.xlsx,.xls" style="display:none" />
+				<button onclick="document.getElementById('import').click()">Import CSV</button>
+				<button class="ghost" onclick="exportCsv()">Export CSV</button>
+				<button class="primary" onclick="openForm()">+ Add proposal</button>
+			</div>
+		</div>
+		<p class="sub">Custom plan proposals — signed/won, plan conversions, and revenue. <a href="../">&larr; All dashboards</a></p>
+
+		<div class="cards" id="cards"></div>
+		<div class="banner" id="banner" style="display:none">
+			<span><strong>Total ACV (won)</strong> <span class="muted">custom + plan</span></span>
+			<span class="big green" id="totalAcv">—</span>
+		</div>
+
+		<div class="panels">
+			<div class="panel">
+				<h3>By status</h3>
+				<div class="panel-body" id="byStatus"></div>
+			</div>
+			<div class="panel">
+				<h3>By signer</h3>
+				<div class="panel-body" style="padding:0"><div id="bySigner"></div></div>
+			</div>
+		</div>
+
+		<div class="panel feature-panel">
+			<h3>By feature <small>— what's driving wins</small></h3>
+			<div id="byFeature"></div>
+		</div>
+
+		<div class="filters">
+			<input type="search" id="fSearch" placeholder="Search customer…" oninput="render()" />
+			<select id="fOutcome" onchange="render()"><option value="">All outcomes</option><option value="won">Won</option><option value="lost">Lost</option><option value="open">Open</option></select>
+			<select id="fStatus" onchange="render()"><option value="">All statuses</option><option>draft</option><option>sent</option><option>viewed</option><option>completed</option><option>expired</option></select>
+			<select id="fSigner" onchange="render()"><option value="">All signers</option></select>
+			<select id="fFeature" onchange="render()"><option value="">All features</option></select>
+		</div>
+
+		<div class="tablewrap">
+			<table>
+				<thead><tr>
+					<th>Customer / Lead</th><th>Outcome</th><th>Status</th><th>Signer</th>
+					<th class="num">Custom ACV</th><th>Plan</th><th class="num">Plan ACV</th>
+					<th>Features</th><th>Date</th><th>Follow up</th><th></th>
+				</tr></thead>
+				<tbody id="rows"></tbody>
+			</table>
+			<div class="empty" id="emptyState" style="display:none">
+				No proposals yet. Click <strong>Import CSV</strong> to load your spreadsheet, or <strong>+ Add proposal</strong>.
+			</div>
+		</div>
+
+		<footer>Data is stored privately in this browser (localStorage). Use Export/Import CSV to move it between devices.</footer>
+	</div>
+
+	<!-- Add/Edit modal -->
+	<div class="overlay" id="overlay">
+		<div class="modal">
+			<h2 id="modalTitle">Add proposal</h2>
+			<div class="form">
+				<div><label>Customer / Lead</label><input id="f_customer" /></div>
+				<div><label>Proposal name</label><input id="f_proposal_name" /></div>
+				<div><label>Status</label><select id="f_status"><option>draft</option><option>sent</option><option>viewed</option><option>completed</option><option>expired</option></select></div>
+				<div><label>Signer</label><input id="f_signer" /></div>
+				<div><label>Date created</label><input id="f_date" type="date" /></div>
+				<div><label>Custom ACV ($)</label><input id="f_value" type="number" min="0" step="0.01" /></div>
+				<div><label>Bought standard plan</label><select id="f_plan_purchased"><option value="">No / custom only</option><option value="growth">Growth</option><option value="starter">Starter</option></select></div>
+				<div><label>Plan revenue ($/yr) — counts as won</label><input id="f_plan_value" type="number" min="0" step="0.01" /></div>
+				<div><label>Follow up</label><select id="f_follow_up"><option value="">-</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+				<div><label>Proposal URL</label><input id="f_proposal_url" placeholder="https://app.pandadoc.com/…" /></div>
+				<div class="full"><label>Features</label><div class="features" id="f_features"></div></div>
+				<div class="full"><label>Notes</label><textarea id="f_notes" rows="2"></textarea></div>
+			</div>
+			<div class="foot">
+				<button class="ghost" onclick="closeForm()">Cancel</button>
+				<button class="primary" onclick="saveForm()">Save</button>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	const FEATURE_TAGS = ['Customizable minutes','AI Actions','Collaborative Agenda Builder','Export DOC/PDF','Extra meetings','Extra team members','Extra boards/departments','Off-site recording','Onboarding / Service order','Check processing'];
+	const STORE_KEY = 'custom-tier-proposals';
+	let proposals = load();
+	let editId = null;
+
+	function load() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch(e){ return []; } }
+	function save() { localStorage.setItem(STORE_KEY, JSON.stringify(proposals)); }
+	function nextId() { return proposals.reduce((m,p)=>Math.max(m,p.id||0),0) + 1; }
+
+	const num = v => { if(v==null||v==='') return 0; const n = Number(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
+	const money = v => '$' + Math.round(num(v)).toLocaleString();
+	const isSignedCustom = p => p.status === 'completed';
+	const boughtPlan = p => num(p.plan_value) > 0;
+	function outcomeOf(p) { if (isSignedCustom(p) || boughtPlan(p)) return 'won'; if (p.status === 'expired') return 'lost'; return 'open'; }
+
+	function statusFromText(t){ t=String(t||'').trim().toLowerCase(); if(['completed','complete','won','signed'].includes(t))return'completed'; if(['expired','lost'].includes(t))return'expired'; if(['viewed','opened'].includes(t))return'viewed'; if(['sent'].includes(t))return'sent'; return'draft'; }
+	function toYmd(v){ if(v==null||v==='')return null; const s=String(v).trim(); const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0'); const d=new Date(s); return isNaN(d)?null:d.toISOString().slice(0,10); }
+
+	const statusBadge = { draft:'b-gray', sent:'b-blue', viewed:'b-blue', completed:'b-green', expired:'b-red' };
+	const outcomeBadge = { won:'b-green', lost:'b-red', open:'b-gray' };
+	const statusColor = { draft:'#64748b', sent:'#60a5fa', viewed:'#60a5fa', completed:'#34d399', expired:'#f87171' };
+
+	function computeStats(list) {
+		const won = list.filter(p=>outcomeOf(p)==='won');
+		const lost = list.filter(p=>outcomeOf(p)==='lost');
+		const open = list.filter(p=>outcomeOf(p)==='open');
+		const decided = won.length + lost.length;
+		const signed = list.filter(isSignedCustom);
+		const planWon = list.filter(boughtPlan);
+		const customRevenue = signed.reduce((s,p)=>s+num(p.value),0);
+		const planRevenue = planWon.reduce((s,p)=>s+num(p.plan_value),0);
+		const byStatus={}, bySigner={}, byFeature={};
+		for (const p of list) {
+			const value=num(p.value), planValue=num(p.plan_value), outcome=outcomeOf(p), acv=boughtPlan(p)?planValue:value;
+			byStatus[p.status]=byStatus[p.status]||{count:0,value:0}; byStatus[p.status].count++; byStatus[p.status].value+=value;
+			const sg=p.signer||'Unassigned';
+			bySigner[sg]=bySigner[sg]||{count:0,won:0,revenue:0,planRevenue:0,pipeline:0}; bySigner[sg].count++;
+			if(isSignedCustom(p)){ bySigner[sg].won++; bySigner[sg].revenue+=value; } else if(outcome==='open'){ bySigner[sg].pipeline+=value; }
+			if(boughtPlan(p)) bySigner[sg].planRevenue+=planValue;
+			for(const f of (p.features||[])){ byFeature[f]=byFeature[f]||{count:0,won:0,lost:0,acv:0}; byFeature[f].count++; if(outcome==='won'){byFeature[f].won++; byFeature[f].acv+=acv;} else if(outcome==='lost') byFeature[f].lost++; }
+		}
+		return { total:list.length, won:won.length, lost:lost.length, open:open.length, decided,
+			winRate: decided? won.length/decided : 0, signed:signed.length, planWon:planWon.length,
+			customRevenue, planRevenue, totalAcv:customRevenue+planRevenue, avgWon: signed.length? customRevenue/signed.length:0,
+			pipeline: open.reduce((s,p)=>s+num(p.value),0), byStatus, bySigner, byFeature };
+	}
+
+	function render() {
+		// signer + feature filter options
+		const signers=[...new Set(proposals.map(p=>p.signer).filter(Boolean))].sort();
+		syncOptions('fSigner', signers);
+		syncOptions('fFeature', FEATURE_TAGS.filter(f=>proposals.some(p=>(p.features||[]).includes(f))));
+
+		const stats = computeStats(proposals);
+		// cards
+		document.getElementById('cards').innerHTML = [
+			card('Proposals', stats.total, ''),
+			card('Won', `<span class="green">${stats.won}</span>`, `${stats.lost} lost · ${stats.open} open`),
+			card('Win rate', (stats.winRate*100).toFixed(0)+'%', 'won vs lost'),
+			card('Custom tier ACV (won)', `<span class="green">${money(stats.customRevenue)}</span>`, `${stats.signed} signed · avg ${money(stats.avgWon)}`),
+			card('Plan ACV (won)', `<span class="green">${money(stats.planRevenue)}</span>`, `${stats.planWon} bought a plan`, true),
+			card('Open pipeline', `<span class="amber">${money(stats.pipeline)}</span>`, `${stats.open} open`),
+		].join('');
+		document.getElementById('banner').style.display = stats.total ? 'flex':'none';
+		document.getElementById('totalAcv').textContent = money(stats.totalAcv);
+
+		// by status
+		const maxS = Math.max(1, ...Object.values(stats.byStatus).map(v=>v.count));
+		document.getElementById('byStatus').innerHTML = ['draft','sent','viewed','completed','expired'].map(s=>{
+			const v = stats.byStatus[s]||{count:0,value:0};
+			return `<div class="rowline"><div class="top"><span class="badge ${statusBadge[s]}">${s}</span><span class="muted">${v.count} · ${money(v.value)}</span></div><div class="bar"><span style="width:${v.count/maxS*100}%;background:${statusColor[s]}"></span></div></div>`;
+		}).join('');
+
+		// by signer
+		const sgRows = Object.entries(stats.bySigner).sort((a,b)=>b[1].revenue-a[1].revenue);
+		document.getElementById('bySigner').innerHTML = sgRows.length ? `<table><thead><tr><th>Signer</th><th class="num">Proposals</th><th class="num">Won</th><th class="num">Custom ACV</th><th class="num">Plan ACV</th><th class="num">Pipeline</th></tr></thead><tbody>${sgRows.map(([s,v])=>`<tr><td>${esc(s)}</td><td class="num">${v.count}</td><td class="num green">${v.won}</td><td class="num">${money(v.revenue)}</td><td class="num green">${money(v.planRevenue)}</td><td class="num muted">${money(v.pipeline)}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">No data</div>`;
+
+		// by feature
+		const ftRows = Object.entries(stats.byFeature).sort((a,b)=>b[1].count-a[1].count);
+		document.getElementById('byFeature').innerHTML = ftRows.length ? `<table><thead><tr><th>Feature</th><th class="num">On proposals</th><th class="num">Won</th><th class="num">Lost</th><th class="num">Win rate</th><th class="num">Won ACV</th></tr></thead><tbody>${ftRows.map(([f,v])=>`<tr><td>${esc(f)}</td><td class="num">${v.count}</td><td class="num green">${v.won}</td><td class="num red">${v.lost}</td><td class="num">${v.won+v.lost?Math.round(v.won/(v.won+v.lost)*100):0}%</td><td class="num">${money(v.acv)}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">No feature tags yet — add them on a proposal to see what's driving wins.</div>`;
+
+		// table (filtered)
+		const fSearch=val('fSearch').toLowerCase(), fOutcome=val('fOutcome'), fStatus=val('fStatus'), fSigner=val('fSigner'), fFeature=val('fFeature');
+		let list = proposals.filter(p=>
+			(!fSearch || (p.customer||'').toLowerCase().includes(fSearch)) &&
+			(!fOutcome || outcomeOf(p)===fOutcome) &&
+			(!fStatus || p.status===fStatus) &&
+			(!fSigner || p.signer===fSigner) &&
+			(!fFeature || (p.features||[]).includes(fFeature))
+		).sort((a,b)=> String(b.date_created||'').localeCompare(String(a.date_created||'')) || (b.id||0)-(a.id||0));
+
+		document.getElementById('emptyState').style.display = proposals.length ? 'none':'block';
+		document.getElementById('rows').innerHTML = list.map(p=>{
+			const oc = outcomeOf(p);
+			const url = p.proposal_url ? ` <a href="${esc(p.proposal_url)}" target="_blank" rel="noopener">↗</a>` : '';
+			const name = p.proposal_name ? `<br><span class="muted" style="font-size:0.78rem">${esc(p.proposal_name)}</span>` : '';
+			const plan = p.plan_purchased ? `<span class="badge b-green" style="text-transform:capitalize">${esc(p.plan_purchased)}</span> ` : '';
+			const feats = (p.features||[]).map(f=>`<span class="tag">${esc(f)}</span>`).join('') || '<span class="muted">-</span>';
+			const fu = p.follow_up ? `<span class="badge ${p.follow_up==='yes'?'b-amber':'b-gray'}">${p.follow_up}</span>` : '<span class="muted">-</span>';
+			return `<tr>
+				<td><a href="#" onclick="openForm(${p.id});return false">${esc(p.customer||'(no name)')}</a>${url}${name}</td>
+				<td><span class="badge ${outcomeBadge[oc]}">${oc}</span></td>
+				<td><span class="badge ${statusBadge[p.status]||'b-gray'}">${esc(p.status)}</span></td>
+				<td>${esc(p.signer)||'<span class="muted">-</span>'}</td>
+				<td class="num">${num(p.value)?money(p.value):'<span class="muted">-</span>'}</td>
+				<td>${plan||(num(p.plan_value)?'':'<span class="muted">-</span>')}</td>
+				<td class="num">${num(p.plan_value)?money(p.plan_value):'<span class="muted">-</span>'}</td>
+				<td style="white-space:normal;max-width:220px">${feats}</td>
+				<td>${p.date_created||'<span class="muted">-</span>'}</td>
+				<td>${fu}</td>
+				<td><button class="danger" onclick="del(${p.id})" title="Delete">✕</button></td>
+			</tr>`;
+		}).join('');
+	}
+
+	function card(label, value, hint, hl) {
+		return `<div class="card ${hl?'hl':''}"><div class="label">${label}</div><div class="value">${value}</div>${hint?`<div class="hint">${hint}</div>`:''}</div>`;
+	}
+	const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+	const val = id => document.getElementById(id).value.trim();
+	function syncOptions(id, items) {
+		const sel=document.getElementById(id), cur=sel.value;
+		sel.innerHTML = `<option value="">${id==='fSigner'?'All signers':'All features'}</option>` + items.map(i=>`<option ${i===cur?'selected':''}>${esc(i)}</option>`).join('');
+	}
+
+	// ---- Add / Edit ----
+	function openForm(id) {
+		editId = id ?? null;
+		const p = id!=null ? proposals.find(x=>x.id===id) : {};
+		document.getElementById('modalTitle').textContent = id!=null ? 'Edit proposal' : 'Add proposal';
+		f('customer',p.customer); f('proposal_name',p.proposal_name); f('status',p.status||'draft'); f('signer',p.signer);
+		f('date',p.date_created); f('value',p.value); f('plan_purchased',p.plan_purchased||''); f('plan_value',p.plan_value);
+		f('follow_up',p.follow_up||''); f('proposal_url',p.proposal_url); f('notes',p.notes);
+		document.getElementById('f_features').innerHTML = FEATURE_TAGS.map(t=>`<label><input type="checkbox" value="${esc(t)}" ${(p.features||[]).includes(t)?'checked':''}/> ${esc(t)}</label>`).join('');
+		document.getElementById('overlay').classList.add('show');
+	}
+	function closeForm() { document.getElementById('overlay').classList.remove('show'); }
+	function f(name, v) { document.getElementById('f_'+name).value = v==null?'':v; }
+	function saveForm() {
+		const features = [...document.querySelectorAll('#f_features input:checked')].map(c=>c.value);
+		const rec = {
+			id: editId!=null ? editId : nextId(),
+			customer: val('f_customer'), proposal_name: val('f_proposal_name'), status: val('f_status'),
+			signer: val('f_signer')||null, date_created: val('f_date')||null,
+			value: val('f_value')? num(val('f_value')) : null,
+			plan_purchased: val('f_plan_purchased')||null,
+			plan_value: val('f_plan_value')? num(val('f_plan_value')) : null,
+			follow_up: val('f_follow_up')||null, proposal_url: val('f_proposal_url')||null,
+			notes: val('f_notes')||null, features,
+		};
+		if (!rec.customer) { alert('Customer / Lead is required'); return; }
+		if (editId!=null) proposals = proposals.map(p=>p.id===editId?rec:p);
+		else proposals.push(rec);
+		save(); closeForm(); render();
+	}
+	function del(id) { if(confirm('Delete this proposal?')) { proposals = proposals.filter(p=>p.id!==id); save(); render(); } }
+
+	// ---- CSV import (flexible headers; handles $/commas, M/D/YYYY, summary rows, notes column) ----
+	function parseCsv(text) {
+		const rows=[]; let row=[], cur='', q=false;
+		for (let i=0;i<text.length;i++){ const c=text[i];
+			if (q) { if (c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+			else if (c==='"') q=true;
+			else if (c===',') { row.push(cur); cur=''; }
+			else if (c==='\n'||c==='\r') { if(c==='\r'&&text[i+1]==='\n')i++; row.push(cur); rows.push(row); row=[]; cur=''; }
+			else cur+=c;
+		}
+		if (cur!==''||row.length){ row.push(cur); rows.push(row); }
+		return rows.filter(r=>r.some(c=>c.trim()!==''));
+	}
+	function importRows(text) {
+		const rows = parseCsv(text);
+		if (rows.length<2) { alert('No rows found'); return; }
+		const headers = rows[0].map(h=>h.toLowerCase().trim());
+		const col = (...needles)=>{ const i=headers.findIndex(h=>needles.some(n=>h===n||h.includes(n))); return i; };
+		const ci = {
+			customer: col('customer','lead','client'), status: col('status'), signer: col('signer','rep','owner'),
+			value: headers.findIndex(h=>h==='value'||h==='custom acv'||(h.includes('value')&&!h.includes('plan'))),
+			plan_purchased: col('bought','purchased'),
+			plan_value: headers.findIndex(h=>h==='plan'||h==='plan acv'||(h.includes('plan')&&!h.includes('purchased'))),
+			name: headers.findIndex(h=>h.includes('proposal')&&h.includes('name')),
+			url: headers.findIndex(h=>h==='proposal'||h.includes('url')||h.includes('pandadoc')||h.includes('link')),
+			follow: col('follow'), notes: headers.findIndex(h=>h===''||h.includes('note')), feat: col('feature'), date: col('date'),
+		};
+		const get=(r,i)=> i>=0 && i<r.length ? r[i] : '';
+		let added=0, skipped=0;
+		const existing = new Set(proposals.map(p=>`${(p.customer||'').toLowerCase()}|${p.date_created||''}`));
+		for (let i=1;i<rows.length;i++){
+			const r = rows[i];
+			const customer = (get(r,ci.customer)||'').trim();
+			if (!customer) continue; // skips summary/blank rows
+			const date = toYmd(get(r,ci.date));
+			const key = `${customer.toLowerCase()}|${date||''}`;
+			if (existing.has(key)) { skipped++; continue; }
+			existing.add(key);
+			const planText = String(get(r,ci.plan_purchased)||'').toLowerCase();
+			const featRaw = (get(r,ci.feat)||'').trim();
+			proposals.push({
+				id: nextId(), customer, status: statusFromText(get(r,ci.status)),
+				signer: (get(r,ci.signer)||'').trim()||null, date_created: date,
+				value: num(get(r,ci.value))||null,
+				plan_purchased: planText.includes('growth')?'growth':planText.includes('starter')?'starter':null,
+				plan_value: num(get(r,ci.plan_value))||null,
+				proposal_name: (get(r,ci.name)||'').trim()||null,
+				proposal_url: (get(r,ci.url)||'').trim()||null,
+				follow_up: (()=>{const f=String(get(r,ci.follow)||'').trim().toLowerCase(); return f==='yes'?'yes':f==='no'?'no':null;})(),
+				notes: (get(r,ci.notes)||'').trim()||null,
+				features: featRaw? featRaw.split(/[;,]/).map(x=>x.trim()).filter(Boolean): [],
+			});
+			added++;
+		}
+		save(); render();
+		alert(`Imported ${added} proposal(s)` + (skipped?`, skipped ${skipped} duplicate(s)`:''));
+	}
+	document.getElementById('import').addEventListener('change', e=>{
+		const file = e.target.files[0]; if(!file) return;
+		e.target.value='';
+		if (/\.xlsx?$/i.test(file.name)) { alert('Please export your sheet as CSV and import that (this hosted dashboard reads CSV).'); return; }
+		const reader = new FileReader();
+		reader.onload = () => importRows(reader.result);
+		reader.readAsText(file);
+	});
+
+	function exportCsv() {
+		const head = ['Customer','Outcome','Status','Signer','Custom ACV','Plan','Plan ACV','Features','Date Created','Follow up','Proposal Name','Proposal URL','Notes'];
+		const lines = [head.join(',')].concat(proposals.map(p=>[
+			q(p.customer), outcomeOf(p), p.status, p.signer||'', num(p.value)||'', p.plan_purchased||'', num(p.plan_value)||'',
+			q((p.features||[]).join('; ')), p.date_created||'', p.follow_up||'', q(p.proposal_name), p.proposal_url||'', q(p.notes)
+		].join(',')));
+		const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+		const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'custom-tier-proposals.csv'; a.click();
+	}
+	const q = s => `"${String(s==null?'':s).replace(/"/g,'""')}"`;
+
+	document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeForm(); });
+	render();
+	</script>
+</body>
+</html>
