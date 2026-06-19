@@ -86,8 +86,13 @@
   select.grad{font-size:.78rem;padding:5px 7px;max-width:160px}
   th[draggable]{cursor:grab;user-select:none}
   th.drop-col{background:var(--surface3);box-shadow:inset 2px 0 0 var(--accent)}
-  td.rowh{width:22px;text-align:center;padding:0}
+  td.rowh{width:46px;padding:0 4px;white-space:nowrap;text-align:center}
   .rhandle{cursor:grab;color:var(--muted2);font-size:.9rem;user-select:none}
+  .archbtn{border:none;background:transparent;color:var(--muted2);cursor:pointer;font-size:.8rem;padding:2px 5px;border-radius:5px;margin-left:2px}
+  .archbtn:hover{background:var(--surface3);color:var(--bad)}
+  #showArchived.on{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+  #floatUnlock{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:49;background:var(--accent);color:#fff;border:1px solid var(--accent);font-weight:700;padding:10px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(108,99,255,.35);cursor:pointer}
+  #floatUnlock:hover{filter:brightness(1.06)}
   tr.drop-row td{box-shadow:inset 0 2px 0 var(--accent)}
   tr.dragging{opacity:.4}
   #tblFilter,#resetLayout{font-size:.82rem}
@@ -203,6 +208,7 @@
       <h2 id="tblTitle">Per-channel economics</h2>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="tblFilter" type="search" placeholder="Filter rows…" style="width:160px">
+        <button id="showArchived" title="Show archived rows">Archived (0)</button>
         <button id="resetLayout" title="Reset column & row order">Reset layout</button>
       </div>
     </div>
@@ -258,6 +264,8 @@
     Refresh monthly: <code>python3 build-data.py "&lt;new CSV&gt;" --inject</code>
   </footer>
 </div>
+
+<button id="floatUnlock" class="hidden">🔒 Enter Magic Key</button>
 
 <div class="overlay hidden" id="modal">
   <div class="modal">
@@ -329,7 +337,7 @@ const decisionCls = d => ({'Scale':'good','Maintain / optimize':'ok','Fix econom
 // Bake it with:  python3 save-settings.py "<exported settings.json>" --inject
 const DEFAULTS = /*SETTINGS_START*/{}/*SETTINGS_END*/;
 const LS = 'cm_growth_attr_v1';
-let state = { costs:{}, graduates:{}, decisions:{}, customFrom:'', customTo:'', colOrder:null, rowOrder:{} };
+let state = { costs:{}, graduates:{}, decisions:{}, customFrom:'', customTo:'', colOrder:null, rowOrder:{}, archived:[] };
 try { Object.assign(state, DEFAULTS||{}); } catch(e){}                                  // committed baseline (fallback)
 try { Object.assign(state, JSON.parse(localStorage.getItem(LS)||'{}')); } catch(e){}    // local cache (fallback)
 
@@ -380,6 +388,8 @@ function applyLock(){
   document.body.classList.toggle('locked', !unlocked);
   const b=document.getElementById('magicBtn');
   if(b){ b.textContent = unlocked ? '🔓 Unlocked' : '🔒 Enter Magic Key'; b.classList.toggle('on', unlocked); }
+  const f=document.getElementById('floatUnlock');
+  if(f) f.classList.toggle('hidden', unlocked);   // sharp floating unlock button, shown only while locked
 }
 function showGate(){ $('#gateErr').textContent=''; $('#gate').classList.remove('hidden'); setTimeout(()=>$('#gateInput').focus(),40); }
 function openGate(){
@@ -412,6 +422,7 @@ function confetti(){
 let groupBy = 'foundational';   // or 'lever'
 let metric = 'rev';
 let tableFilter = '';           // transient row filter text
+let showArchived = false;       // transient: show the archived rows instead of active ones
 const FOCUS_START = '2025-02';        // analysis focus per leadership: Feb 2025 -> now
 let period = 'focus';
 
@@ -588,8 +599,12 @@ function renderTable(){
     if(ia!==-1||ib!==-1) return (ia===-1?1e9:ia)-(ib===-1?1e9:ib);   // manually-ordered rows first
     return b.rev-a.rev;
   });
+  const arch=state.archived||[];
+  // archived view shows only archived rows; normal view hides them
+  const base=showArchived ? ordered.filter(r=>arch.includes(r.key)) : ordered.filter(r=>!arch.includes(r.key));
   const filt=tableFilter.trim().toLowerCase();
-  const disp=filt?ordered.filter(r=>(fullName[r.key]||r.key).toLowerCase().includes(filt)):ordered;
+  const disp=filt?base.filter(r=>(fullName[r.key]||r.key).toLowerCase().includes(filt)):base;
+  const sa=$('#showArchived'); if(sa){ sa.textContent = showArchived?'← Active rows':`Archived (${arch.length})`; sa.classList.toggle('on', showArchived); }
 
   // totals over displayed rows
   const tot={cust:0,rev:0,cost:0,billCust:0,costedRev:0,anyKnown:false};
@@ -599,19 +614,26 @@ function renderTable(){
   const head=`<thead><tr><th class="dragcol" aria-hidden="true"></th>${order.map(id=>`<th draggable="${unlocked}" data-col="${id}" title="${unlocked?'Drag to reorder column':''}">${COLS[id].label}</th>`).join('')}</tr></thead>`;
   const body=disp.map((r,i)=>{
     const m=mCache[r.key], v=verdict(r,m), k=encodeURIComponent(r.key), ctx={i,k};
-    return `<tr data-key="${k}"><td class="rowh"><span class="rhandle" draggable="true" data-key="${k}" title="Drag to reorder row">⠿</span></td>${order.map(id=>`<td>${COLS[id].cell(r,m,v,ctx)}</td>`).join('')}</tr>`;
+    const archCell = `<span class="rhandle" draggable="true" data-key="${k}" title="Drag to reorder row">⠿</span><button class="archbtn" data-key="${k}" title="${showArchived?'Restore row':'Archive row'}">${showArchived?'↩':'✕'}</button>`;
+    return `<tr data-key="${k}"><td class="rowh">${archCell}</td>${order.map(id=>`<td>${COLS[id].cell(r,m,v,ctx)}</td>`).join('')}</tr>`;
   }).join('');
   const foot=`<tfoot><tr><td></td>${order.map(id=>`<td>${COLS[id].foot(tot)}</td>`).join('')}</tr></tfoot>`;
   $('#chTable').innerHTML = head+'<tbody>'+body+'</tbody>'+foot;
 
   // coverage note (view exclusions, independent of filter)
   const totalPeriod=recsForPeriod().length;
-  $('#viewNote').innerHTML = viewCustTotal<totalPeriod
-    ? (groupBy==='lever'
-        ? `Showing ${viewCustTotal} of ${totalPeriod} wins — Growth Levers covers only campaign-tracked customers (channel-only & untagged wins live under Foundational Channels).`
-        : `Showing ${viewCustTotal} of ${totalPeriod} wins — Foundational Channels excludes campaign-only wins (Campaign Postcard, Multi-channel NMMD); see Growth Levers.`)
-      + (filt?` · row filter active`:'')
-    : (filt?`Row filter active — ${disp.length} of ${ordered.length} rows shown.`:'');
+  const archInView=arch.length;
+  if(showArchived){
+    $('#viewNote').innerHTML = `Showing ${disp.length} archived row(s). Click ↩ to restore, or “← Active rows” to go back.`;
+  } else {
+    $('#viewNote').innerHTML = (viewCustTotal<totalPeriod
+      ? (groupBy==='lever'
+          ? `Showing ${viewCustTotal} of ${totalPeriod} wins — Growth Levers covers only campaign-tracked customers (channel-only & untagged wins live under Foundational Channels).`
+          : `Showing ${viewCustTotal} of ${totalPeriod} wins — Foundational Channels excludes campaign-only wins (Campaign Postcard, Multi-channel NMMD); see Growth Levers.`)
+      : '')
+      + (archInView?` · ${archInView} row(s) archived`:'')
+      + (filt?` · row filter active`:'');
+  }
   const grounded=disp.filter(r=>mCache[r.key].grounded);
   $('#cacNote').innerHTML = grounded.length
     ? `* ${grounded.map(r=>fullName[r.key]||r.key).join(', ')}: CAC grounded from ${[...new Set(grounded.map(r=>r.costStart))].join(', ')} — we don't have spend before then, so only customers since are counted.`
@@ -626,6 +648,13 @@ function renderTable(){
   document.querySelectorAll('.na-btn').forEach(btn=>btn.addEventListener('click',e=>{
     const key=decodeURIComponent(e.target.dataset.key);
     if(bucket()[key]==='na') delete bucket()[key]; else bucket()[key]='na'; save(); renderAll();
+  }));
+  document.querySelectorAll('.archbtn').forEach(btn=>btn.addEventListener('click',e=>{
+    const key=decodeURIComponent(e.target.dataset.key);
+    state.archived = state.archived||[];
+    const i=state.archived.indexOf(key);
+    if(i>=0) state.archived.splice(i,1); else state.archived.push(key);   // toggle archive/restore
+    save(); renderTable();
   }));
   document.querySelectorAll('select.grad').forEach(sel=>sel.addEventListener('change',e=>{
     state.graduates[decodeURIComponent(e.target.dataset.key)]=e.target.value; save();
@@ -830,10 +859,12 @@ async function init(){
   $('#importFile').addEventListener('change',e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
   $('#tblFilter').addEventListener('input',e=>{ tableFilter=e.target.value; renderTable(); });
   $('#resetLayout').addEventListener('click',()=>{ state.colOrder=null; state.rowOrder={}; tableFilter=''; $('#tblFilter').value=''; save(); renderTable(); });
+  $('#showArchived').addEventListener('click',()=>{ showArchived=!showArchived; renderTable(); });
   $('#magicBtn').addEventListener('click',openGate);
   $('#gateUnlock').addEventListener('click',tryUnlock);
   $('#gateInput').addEventListener('keydown',e=>{ if(e.key==='Enter') tryUnlock(); });
-  // gate is NOT dismissable by backdrop while locked — the whole page is blurred, so there'd be no way back
+  $('#gate').addEventListener('click',e=>{ if(e.target.id==='gate') $('#gate').classList.add('hidden'); });  // dismiss to peek; floating button reopens
+  $('#floatUnlock').addEventListener('click',showGate);
   renderAll();                                   // instant paint from local cache / defaults
   if(!unlocked) showGate();                       // page stays blurred until the Magic Key is entered
   const remote = await loadRemote();             // then load the shared cloud data
