@@ -146,7 +146,10 @@
       <h1>Growth Attribution &amp; Measurement</h1>
       <div class="tagline">CAC · Net Revenue · ROI per channel</div>
     </div>
-    <div class="crumbs" id="dataMeta"></div>
+    <div style="text-align:right">
+      <div class="crumbs" id="dataMeta"></div>
+      <div class="crumbs" id="syncStatus" style="margin-top:4px;font-weight:600"></div>
+    </div>
   </header>
 
   <!-- CONTROLS -->
@@ -304,9 +307,48 @@ const decisionCls = d => ({'Scale':'good','Maintain / optimize':'ok','Fix econom
 const DEFAULTS = /*SETTINGS_START*/{}/*SETTINGS_END*/;
 const LS = 'cm_growth_attr_v1';
 let state = { costs:{}, graduates:{}, decisions:{}, customFrom:'', customTo:'', colOrder:null, rowOrder:{} };
-try { Object.assign(state, DEFAULTS||{}); } catch(e){}                                  // committed baseline (everyone sees)
-try { Object.assign(state, JSON.parse(localStorage.getItem(LS)||'{}')); } catch(e){}    // per-browser edits override
-const save = () => localStorage.setItem(LS, JSON.stringify(state));
+try { Object.assign(state, DEFAULTS||{}); } catch(e){}                                  // committed baseline (fallback)
+try { Object.assign(state, JSON.parse(localStorage.getItem(LS)||'{}')); } catch(e){}    // local cache (fallback)
+
+// ---------- shared cloud sync (Supabase) ----------
+// Everyone on the link reads/writes this one shared row, so edits are visible to all.
+const SUPABASE = {
+  url: 'https://rjywjxmhfmcwlqnanppo.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqeXdqeG1oZm1jd2xxbmFucHBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODM2OTYsImV4cCI6MjA5NzQ1OTY5Nn0.7waWEKn1RCsXC81ETZX65MkfORKcCtojs93X-2ci3T0'  // anon key — safe to embed in the browser (RLS controls access)
+};
+const SB = SUPABASE.url ? {
+  rest: SUPABASE.url.replace(/\/$/,'') + '/rest/v1/growth_settings',
+  headers: { apikey: SUPABASE.key, Authorization: 'Bearer ' + SUPABASE.key }
+} : null;
+let saveTimer = null;
+function save(){
+  try { localStorage.setItem(LS, JSON.stringify(state)); } catch(e){}   // instant local cache
+  if (SB){ clearTimeout(saveTimer); saveTimer = setTimeout(pushRemote, 500); }  // debounced cloud write
+}
+async function pushRemote(){
+  if(!SB) return; setSync('saving');
+  try{
+    const r = await fetch(SB.rest + '?on_conflict=id', { method:'POST',
+      headers:{ ...SB.headers, 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify([{ id:1, data:state, updated_at:new Date().toISOString() }]) });
+    setSync(r.ok?'saved':'error');
+  }catch(e){ setSync('error'); }
+}
+async function loadRemote(){
+  if(!SB) return null; setSync('loading');
+  try{
+    const r = await fetch(SB.rest + '?id=eq.1&select=data,updated_at', { headers: SB.headers });
+    if(!r.ok){ setSync('error'); return null; }
+    const a = await r.json(); setSync('saved', a[0]&&a[0].updated_at); return a[0]||null;
+  }catch(e){ setSync('error'); return null; }
+}
+function setSync(s, when){
+  const el = document.getElementById('syncStatus'); if(!el) return;
+  const t = when ? ' · '+new Date(when).toLocaleString('en',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+  el.textContent = ({loading:'⟳ Loading shared data…', saving:'⟳ Saving…',
+    saved:'☁ Shared via Supabase — all edits sync'+t, error:'⚠ Cloud offline — saved to this browser only'})[s] || '';
+  el.dataset.s = s;
+}
 
 let groupBy = 'foundational';   // or 'lever'
 let metric = 'rev';
@@ -707,7 +749,7 @@ function syncControls(){
 }
 function renderAll(){ renderKPIs(); renderTable(); renderBars(); renderFramework(); }
 
-function init(){
+async function init(){
   if(!DATA){ document.querySelector('.wrap').innerHTML='<h1>No data loaded.</h1><p>Run <code>python3 build-data.py --inject</code> to populate.</p>'; return; }
   $('#dataMeta').innerHTML = `source: <b>${DATA.source}</b> · ${DATA.count} customers · ${months[0]} → ${months[months.length-1]}`;
   $('#customFrom').min=$('#customTo').min=months[0]; $('#customFrom').max=$('#customTo').max=lastMonth;
@@ -729,7 +771,9 @@ function init(){
   $('#importFile').addEventListener('change',e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
   $('#tblFilter').addEventListener('input',e=>{ tableFilter=e.target.value; renderTable(); });
   $('#resetLayout').addEventListener('click',()=>{ state.colOrder=null; state.rowOrder={}; tableFilter=''; $('#tblFilter').value=''; save(); renderTable(); });
-  renderAll();
+  renderAll();                                   // instant paint from local cache / defaults
+  const remote = await loadRemote();             // then load the shared cloud data
+  if(remote && remote.data){ Object.assign(state, remote.data); syncControls(); renderAll(); }
 }
 init();
 </script>

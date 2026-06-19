@@ -51,7 +51,20 @@ This re-classifies every row and rewrites the data baked into `index.html`. Your
 
 To review the channel split without writing the file, run it without `--inject` — it prints a summary to stderr.
 
-## Saving your data for deploy (GitHub → Netlify)
+## Shared live data (Supabase) — the team edits in the link
+
+The dashboard is wired to a **Supabase** project (`rjywjxmhfmcwlqnanppo`). All costs, graduate tags, decisions and layout are stored in one shared row (`growth_settings`, id=1). Anyone you send the deployed link to edits the **same live data** — changes save automatically and everyone sees them on reload. The header shows a "☁ Shared via Supabase" status with the last-saved time.
+
+- The anon key embedded in `index.html` is **safe to commit/ship** (it's a public browser key; access is governed by Row-Level-Security policies on that one table).
+- Current policy = **anyone with the link can read & edit.** To lock it to your team, add a shared password gate or Supabase Auth (ask and I'll wire it).
+- Edits are "last save wins" — fine for a small team editing occasionally.
+- localStorage is now just an offline cache; the Supabase row is the source of truth (loaded on open).
+
+To reset everything, run in Supabase SQL editor: `update growth_settings set data='{}'::jsonb where id=1;`
+
+## (Optional) Bake a static snapshot for deploy (GitHub → Netlify)
+
+This is the older fallback path (used if you ever turn Supabase off). It bakes data into the file itself:
 
 Costs, graduate tags, manual decisions and layout are stored in **your browser** (localStorage) — they don't travel with the repo. To make the **deployed** site show your data for everyone:
 
