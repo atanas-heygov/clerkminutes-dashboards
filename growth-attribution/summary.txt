@@ -1,0 +1,10 @@
+Channel split:
+   288 Postcards
+   105 Unattributed
+    65 Organic
+    21 Google Ads
+    15 Events
+     3 Town Web
+     2 HeyGov
+     2 Outbound
+     2 Referral

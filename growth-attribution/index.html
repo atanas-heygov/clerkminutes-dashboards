@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClerkMinutes — Growth Attribution & Measurement</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#eef1f8; --surface:#ffffff; --surface2:#f5f7fc; --surface3:#eef1fa;
+    --border:#dde2f0; --text:#161a2b; --muted:#6b7280; --muted2:#9aa1b2;
+    --radius:14px;
+    --accent:#6c63ff;
+    --good:#0f9d6e; --good-bg:#e7f7f0;
+    --ok:#2a82e6;   --ok-bg:#e7f0fd;
+    --warn:#e08a00;  --warn-bg:#fdf4e3;
+    --bad:#e0483b;   --bad-bg:#fdecea;
+    --grey:#8a93a6;  --grey-bg:#eef0f5;
+    /* channel colors */
+    --c-Postcards:#6c63ff; --c-GoogleAds:#00b4d8; --c-Organic:#00a884;
+    --c-Events:#ff9f43; --c-TownWeb:#9b5de5; --c-HeyGov:#f15bb5;
+    --c-Outbound:#e07a5f; --c-Referral:#3ab795; --c-Unattributed:#b0b7c6;
+  }
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.5;padding:28px 22px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  a{color:var(--accent)}
+
+  /* header */
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:8px}
+  h1{font-size:1.55rem;font-weight:800;letter-spacing:-.02em}
+  .tagline{color:var(--muted);font-size:.9rem;margin-top:3px}
+  .crumbs{font-size:.8rem;color:var(--muted2)}
+  .crumbs a{text-decoration:none}
+
+  /* control bar */
+  .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin:18px 0}
+  .ctrl{display:flex;flex-direction:column;gap:4px}
+  .ctrl label{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);font-weight:700}
+  select,input[type=number]{font:inherit;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text)}
+  .slider-wrap{display:flex;flex-direction:column;gap:2px;min-width:220px}
+  .slider-row{display:flex;align-items:center;gap:10px}
+  input[type=range]{flex:1;accent-color:var(--accent)}
+  .slider-val{font-weight:700;font-variant-numeric:tabular-nums;min-width:118px;text-align:right;font-size:.82rem}
+  .spacer{flex:1}
+  button{font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);padding:7px 13px;border-radius:8px}
+  button:hover{background:var(--surface3)}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* section */
+  section{margin-top:30px}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+  h2{font-size:1.08rem;font-weight:800;letter-spacing:-.01em}
+  .sec-sub{color:var(--muted);font-size:.82rem}
+
+  /* KPI cards */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+  .kpi .k-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);font-weight:700}
+  .kpi .k-val{font-size:1.5rem;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .kpi .k-sub{font-size:.74rem;color:var(--muted);margin-top:3px}
+  .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px}
+  .pill.good{background:var(--good-bg);color:var(--good)} .pill.ok{background:var(--ok-bg);color:var(--ok)}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+  .pill.grey{background:var(--grey-bg);color:var(--grey)}
+
+  /* table */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px 4px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:760px}
+  th,td{padding:11px 14px;text-align:right;white-space:nowrap}
+  th{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted2);font-weight:700;border-bottom:1px solid var(--border);cursor:default}
+  td{border-bottom:1px solid var(--surface3)}
+  tr:last-child td{border-bottom:none}
+  th:first-child,td:first-child{text-align:left}
+  tbody tr:hover{background:var(--surface2)}
+  tfoot td{font-weight:800;border-top:2px solid var(--border);background:var(--surface2)}
+  .ch-name{display:flex;align-items:center;gap:9px;font-weight:600}
+  .dot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+  .ch-type{font-size:.66rem;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  td input.cost{width:96px;text-align:right;padding:5px 8px}
+  .muted-cell{color:var(--muted2)}
+  .ground{color:var(--warn);font-weight:800;cursor:help}
+  .cost-cell{display:flex;gap:5px;align-items:center;justify-content:flex-end}
+  .na-btn{padding:4px 7px;font-size:.68rem;font-weight:700;border-radius:6px;color:var(--muted);line-height:1}
+  select.grad{font-size:.78rem;padding:5px 7px;max-width:160px}
+  th[draggable]{cursor:grab;user-select:none}
+  th.drop-col{background:var(--surface3);box-shadow:inset 2px 0 0 var(--accent)}
+  td.rowh{width:22px;text-align:center;padding:0}
+  .rhandle{cursor:grab;color:var(--muted2);font-size:.9rem;user-select:none}
+  tr.drop-row td{box-shadow:inset 0 2px 0 var(--accent)}
+  tr.dragging{opacity:.4}
+  #tblFilter,#resetLayout{font-size:.82rem}
+  .na-btn.on{background:var(--grey);color:#fff;border-color:var(--grey)}
+  td input.cost:disabled{opacity:.45}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:50;overflow:auto}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;max-width:760px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .modal-head h2{font-size:1.1rem}
+  #modalClose{border:none;background:var(--surface2);width:32px;height:32px;border-radius:8px;font-size:.9rem}
+
+  /* monthly chart */
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--muted)}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:230px;margin-top:6px;border-bottom:1px solid var(--border)}
+  .bcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0;height:100%;cursor:pointer;border-radius:6px 6px 0 0;transition:background .12s}
+  .bcol:hover{background:rgba(108,99,255,.08)}
+  .bstack{width:80%;max-width:34px;display:flex;flex-direction:column-reverse;border-radius:4px 4px 0 0;overflow:hidden;transition:filter .12s}
+  .bseg{width:100%;min-height:1px}
+  .blabel{font-size:.62rem;color:var(--muted2);transform:rotate(-90deg) translateX(2px);transform-origin:center;white-space:nowrap;margin-top:8px;height:34px}
+  .bcol:hover .bstack{filter:brightness(1.08);box-shadow:0 0 0 2px var(--accent)}
+
+  /* framework */
+  .recs{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .rec{background:var(--surface);border:1px solid var(--border);border-left-width:5px;border-radius:12px;padding:15px 17px}
+  .rec h3{font-size:.95rem;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .rec .verdict{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px}
+  .rec p{font-size:.83rem;color:var(--muted);margin-top:8px}
+  .rec .metrics{display:flex;gap:14px;margin-top:10px;font-size:.76rem;flex-wrap:wrap}
+  .rec .metrics b{display:block;font-size:.95rem;color:var(--text);font-variant-numeric:tabular-nums}
+  .rec.good{border-left-color:var(--good)} .rec.ok{border-left-color:var(--ok)}
+  .rec.warn{border-left-color:var(--warn)} .rec.bad{border-left-color:var(--bad)}
+  .rec.grey{border-left-color:var(--grey)}
+  .spark{font-size:.85em;filter:saturate(1.3)}
+  .dec-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--surface3)}
+  .dec-tag{font-size:.7rem;font-weight:700;color:var(--muted2);display:flex;align-items:center;gap:4px}
+  .dec-tag.manual{color:var(--accent)}
+  select.dec{font-size:.76rem;padding:5px 8px}
+
+  .note{background:var(--warn-bg);border:1px solid #f5d98a;border-radius:10px;padding:12px 16px;font-size:.8rem;color:#7a5c00;line-height:1.6}
+  .note b{color:#5a3e00}
+  .placeholder{background:var(--surface2);border:1px dashed var(--border);border-radius:12px;padding:22px;text-align:center;color:var(--muted)}
+  .tabs{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px}
+  .tabs button{border:none;background:transparent;padding:6px 14px;border-radius:7px;font-size:.82rem}
+  .tabs button.active{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.08);color:var(--accent)}
+  footer{margin-top:48px;color:var(--muted2);font-size:.76rem;text-align:center}
+  .hidden{display:none}
+  @media(max-width:640px){h1{font-size:1.3rem}body{padding:18px 12px 60px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="crumbs"><a href="../index.html">← All dashboards</a></div>
+      <h1>Growth Attribution &amp; Measurement</h1>
+      <div class="tagline">CAC · Net Revenue · ROI per channel</div>
+    </div>
+    <div class="crumbs" id="dataMeta"></div>
+  </header>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="ctrl">
+      <label>Period</label>
+      <select id="periodSel"></select>
+    </div>
+    <div class="ctrl hidden" id="customWrap">
+      <label>Custom range (from → to)</label>
+      <div class="slider-row">
+        <input type="month" id="customFrom"> <span style="color:var(--muted2)">→</span> <input type="month" id="customTo">
+      </div>
+    </div>
+    <div class="ctrl">
+      <label>Group by</label>
+      <div class="tabs" id="groupTabs">
+        <button data-g="foundational" class="active">Foundational Channels</button>
+        <button data-g="lever">Growth Levers</button>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="ctrl" style="align-self:flex-end;flex-direction:row;gap:8px">
+      <button id="exportBtn">Export</button>
+      <button id="importBtn">Import</button>
+      <input type="file" id="importFile" accept=".json,.csv" class="hidden">
+    </div>
+  </div>
+
+  <!-- TOTAL OVERVIEW -->
+  <section>
+    <div class="sec-head"><h2>Total overview</h2><span class="sec-sub" id="ovSub"></span></div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <!-- PER CHANNEL TABLE -->
+  <section>
+    <div class="sec-head">
+      <h2 id="tblTitle">Per-channel economics</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="tblFilter" type="search" placeholder="Filter rows…" style="width:160px">
+        <button id="resetLayout" title="Reset column & row order">Reset layout</button>
+      </div>
+    </div>
+    <div class="card"><table id="chTable"></table></div>
+    <div class="sec-sub" style="margin-top:8px;color:var(--muted2)">Drag a column header or the ⠿ handle to reorder · type in <b>Filter rows</b> to narrow · spend in <b>Cost</b> unlocks CAC/ROI.</div>
+    <div id="viewNote" class="sec-sub" style="margin-top:6px"></div>
+    <div id="cacNote" class="sec-sub" style="margin-top:6px;color:var(--warn)"></div>
+  </section>
+
+  <!-- MONTHLY BREAKDOWN -->
+  <section>
+    <div class="sec-head">
+      <h2>Monthly breakdown</h2>
+      <div class="tabs" id="metricTabs">
+        <button data-m="rev" class="active">Net Revenue</button>
+        <button data-m="cust">Customers</button>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="bars" id="bars"></div>
+      <div class="legend" id="legend"></div>
+      <div class="sec-sub" style="margin-top:12px">Click any month for its full channel breakdown.</div>
+    </div>
+  </section>
+
+  <div class="note" style="margin-top:24px">
+    <b>Read this first.</b> Attribution is reconstructed from the miniCRM <b>Notes / Lead Source</b> field — it is <b>directional, not exact</b>.
+    These are <b>won (paid) customers</b>; trial pipeline is not yet wired in. Default view is the <b>Feb 2025 → now</b> focus window. <b>Cost is entered by you</b> (no spend data exists in the CRM) —
+    metrics that depend on cost show <span class="pill grey">add cost</span> until you do. <b>Referral Postcard CAC is grounded from Aug 2025</b> (earlier spend isn't available). Costs &amp; settings are saved in your browser; use <b>Export</b> to share.
+  </div>
+
+  <!-- DECISION FRAMEWORK -->
+  <section>
+    <div class="sec-head">
+      <h2>Growth Decision Framework — AI Suggestions <span class="spark" title="AI-generated suggestion">✨</span></h2>
+      <span class="sec-sub">AI suggestion per channel/lever from the numbers above. Override any decision with the dropdown.</span>
+    </div>
+    <div id="headline" class="note" style="background:var(--surface2);border-color:var(--border);color:var(--text);margin-bottom:14px"></div>
+    <div class="recs" id="recs"></div>
+  </section>
+
+  <!-- TRIAL PIPELINE PLACEHOLDER -->
+  <section>
+    <div class="sec-head"><h2>Trial pipeline &amp; 14-day maturity</h2><span class="sec-sub">Awaiting data</span></div>
+    <div class="placeholder">
+      <b>Not yet wired in.</b> This CRM export contains only won customers (the <i>Trial started date</i> column is empty for all rows).<br>
+      To light up trial→paid conversion and 14-day maturity per channel, drop a trials export here (with trial-start dates &amp; source) and this section activates.
+    </div>
+  </section>
+
+  <footer>
+    ClerkMinutes Growth Attribution · directional · audience: CEO · Product · CTO · Growth · Sales<br>
+    Refresh monthly: <code>python3 build-data.py "&lt;new CSV&gt;" --inject</code>
+  </footer>
+</div>
+
+<div class="overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle"></h2>
+      <button id="modalClose" aria-label="Close">✕</button>
+    </div>
+    <div class="card" style="margin-top:6px"><table id="modalTable"></table></div>
+  </div>
+</div>
+
+<script>
+const DATA = /*DATA_START*/{"source":"HeyGov miniCRM (ARR) - ClerkMinutes Customers (23).csv","count":503,"records":[{"m":"2024-03","cm":null,"ch":"Partner \u2014 Town Web","cs":"TownWeb","lv":null,"rev":1000,"plan":"Starter","st":"UT","mun":"Town of Fairfield"},{"m":"2024-03","cm":"2025-02","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"NC","mun":"Town of Long View"},{"m":"2024-03","cm":null,"ch":"Partner \u2014 HeyGov","cs":"HeyGov","lv":null,"rev":1000,"plan":"Starter","st":"UT","mun":"Town of Cedar Fort"},{"m":"2024-03","cm":"2023-03","ch":"Partner \u2014 Town Web","cs":"TownWeb","lv":null,"rev":1000,"plan":"Starter","st":"OR","mun":"City of Siletz"},{"m":"2024-03","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"TaxProperty","rev":2000,"plan":"Growth","st":"WI","mun":"Village of Rib Mountain"},{"m":"2024-04","cm":"2024-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"UT","mun":"City of Hyde Park"},{"m":"2024-04","cm":"2022-03","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"FL","mun":"Town of South Palm Beach"},{"m":"2024-04","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"TaxProperty","rev":1188,"plan":"Starter","st":"WI","mun":"Village of Lone Rock"},{"m":"2024-04","cm":"2024-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"OR","mun":"City of Oakland"},{"m":"2024-04","cm":"2023-10","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"UT","mun":"City of Providence"},{"m":"2024-04","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1188,"plan":"Starter","st":"UT","mun":"Town of Annabella"},{"m":"2024-04","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1000,"plan":"Starter","st":"FL","mun":"City of LaBelle"},{"m":"2024-04","cm":"2024-01","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Advantage","rev":1000,"plan":"Starter","st":"ID","mun":"City of Hayden Lake"},{"m":"2024-04","cm":"2024-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"UT","mun":"City of Green River"},{"m":"2024-04","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"TaxProperty","rev":1000,"plan":"Starter","st":"WI","mun":"Town of Forestville"},{"m":"2024-05","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"TaxProperty","rev":1188,"plan":"Starter","st":"WI","mun":"Town of Land O'Lakes"},{"m":"2024-05","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"OR","mun":"Mid-Willamette Valley Council of Governments"},{"m":"2024-05","cm":"2024-08","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Pound Ridge"},{"m":"2024-05","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":891,"plan":"Starter","st":"WI","mun":"Village of Kronnenwetter"},{"m":"2024-05","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"AZ","mun":"League of Arizona Cities and Towns"},{"m":"2024-05","cm":"2024-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1981,"plan":"Growth","st":"UT","mun":"City of Cottonwood Heights"},{"m":"2024-06","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1000,"plan":"Starter","st":"UT","mun":"Town of Levan"},{"m":"2024-06","cm":"2024-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"UT","mun":"City of Centerville"},{"m":"2024-06","cm":"2024-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"NY","mun":"Town of Lansing"},{"m":"2024-07","cm":"2024-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"SC","mun":"Town of Pine Ridge"},{"m":"2024-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2000,"plan":"Growth","st":"WA","mun":"City of Puyallup"},{"m":"2024-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"UT","mun":"City of Perry"},{"m":"2024-07","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1188,"plan":"Starter","st":"UT","mun":"Town of Brian Head"},{"m":"2024-07","cm":"2024-05","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"OR","mun":"City of Creswell"},{"m":"2024-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"NY","mun":"Village of Fayetteville"},{"m":"2024-07","cm":"2024-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"WI","mun":"Village of Lisbon"},{"m":"2024-07","cm":"2024-06","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"WI","mun":"City of Nekoosa"},{"m":"2024-07","cm":"2024-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"WI","mun":"City of Milton"},{"m":"2024-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":3588,"plan":"Starter","st":"OR","mun":"City of King City"},{"m":"2024-07","cm":"2024-10","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Advantage","rev":1000,"plan":"Starter","st":"MA","mun":"Town of Boxford"},{"m":"2024-08","cm":"2024-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":2000,"plan":"Growth","st":"IN","mun":"City of Elkhart"},{"m":"2024-08","cm":"2024-08","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":2388,"plan":"Growth","st":"WI","mun":"Village of Bellevue"},{"m":"2024-08","cm":"2024-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"OR","mun":"City of Madras"},{"m":"2024-08","cm":"2024-08","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"NJ","mun":"Haworth Borough"},{"m":"2024-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Mid-East Commission"},{"m":"2024-08","cm":"2024-05","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"WI","mun":"Village of Bloomington"},{"m":"2024-09","cm":"2024-08","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"MA","mun":"Town of Lunenburg"},{"m":"2024-09","cm":"2023-07","ch":"Partner \u2014 Town Web","cs":"TownWeb","lv":null,"rev":1000,"plan":"Starter","st":"AZ","mun":"City of Williams"},{"m":"2024-09","cm":"2024-08","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"UT","mun":"Parowan City"},{"m":"2024-09","cm":"2024-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"UT","mun":"Willard City"},{"m":"2024-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"TX","mun":"Blanco-Pedernales Groundwater Conservation District"},{"m":"2024-09","cm":"2024-09","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"NJ","mun":"Glen Rock Borough"},{"m":"2024-09","cm":"2024-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"NC","mun":"Town of Spring Lake"},{"m":"2024-10","cm":"2024-08","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"WI","mun":"City of Burlington"},{"m":"2024-10","cm":"2023-10","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"UT","mun":"Town of Emery"},{"m":"2024-10","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"TaxProperty","rev":1000,"plan":"Starter","st":"WI","mun":"Town of Calumet"},{"m":"2024-10","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"CO","mun":"Town of New Castle"},{"m":"2024-10","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":693,"plan":"Starter","st":"OR","mun":"City of Tualatin"},{"m":"2024-10","cm":"2024-12","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"MA","mun":"Town of Acton"},{"m":"2024-11","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1000,"plan":"Starter","st":"MN","mun":"City of Hackensack"},{"m":"2024-11","cm":"2024-10","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Advantage","rev":2000,"plan":"Growth","st":"MA","mun":"Town of Brewster"},{"m":"2024-11","cm":"2024-06","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":2000,"plan":"Growth","st":"AZ","mun":"City of Tempe"},{"m":"2024-11","cm":"2024-10","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Advantage","rev":2988,"plan":"Growth","st":"MA","mun":"Town of Manchester-by-the-Sea"},{"m":"2024-11","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Southern Shores"},{"m":"2024-11","cm":"2024-10","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Advantage","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Brookfield"},{"m":"2024-11","cm":"2024-11","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2388,"plan":"Growth","st":"NH","mun":"Town of Goffstown"},{"m":"2024-11","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":99,"plan":"Starter","st":"OH","mun":"City of Blue Ash"},{"m":"2024-11","cm":"2024-12","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":2000,"plan":"Growth","st":"MA","mun":"Town of Northborough"},{"m":"2024-11","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"OH","mun":"City of Upper Arlington"},{"m":"2024-12","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Lincoln County"},{"m":"2024-12","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"OR","mun":"City of North Plains"},{"m":"2024-12","cm":"2024-12","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"WI","mun":"Town of Polk"},{"m":"2024-12","cm":"2025-02","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"KS","mun":"City of Goddard"},{"m":"2024-12","cm":"2024-12","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"CA","mun":"City of Indian Wells"},{"m":"2024-12","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1000,"plan":"Starter","st":"MI","mun":"Lafayette Township"},{"m":"2024-12","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NH","mun":"Town of Greenville"},{"m":"2024-12","cm":"2024-12","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"MA","mun":"Town of Boylston"},{"m":"2024-12","cm":"2024-10","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"NY","mun":"Town of Chester"},{"m":"2025-01","cm":"2024-10","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"UT","mun":"City of Beaver"},{"m":"2025-01","cm":"2024-12","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Dunstable"},{"m":"2025-01","cm":"2024-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"NC","mun":"Town of Cary"},{"m":"2025-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"UT","mun":"City of Provo"},{"m":"2025-01","cm":"2025-02","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"WI","mun":"Town of Waterford"},{"m":"2025-01","cm":"2024-12","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"NC","mun":"City of Thomasville"},{"m":"2025-01","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NH","mun":"Town of Weare"},{"m":"2025-01","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"MA","mun":"Town of Holbrook"},{"m":"2025-01","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"UT","mun":"City of Herriman"},{"m":"2025-01","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1000,"plan":"Starter","st":"IA","mun":"City of Burlington"},{"m":"2025-01","cm":"2025-01","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"WI","mun":"City of Waupaca"},{"m":"2025-01","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Elk Park"},{"m":"2025-01","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":3000,"plan":"Custom","st":"NJ","mun":"City of Englewood"},{"m":"2025-02","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Pepperell"},{"m":"2025-02","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Louisburg"},{"m":"2025-02","cm":"2025-01","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":2000,"plan":"Growth","st":"OR","mun":"Town of Grand Isle"},{"m":"2024-12","cm":"2025-03","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1050,"plan":"Starter","st":"NJ","mun":"Borough of Englewood Cliffs"},{"m":"2025-02","cm":"2024-12","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Leicester"},{"m":"2025-02","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Hillsborough"},{"m":"2025-02","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"MA","mun":"Town of Stow"},{"m":"2025-02","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"NJ","mun":"Franklin Lakes Borough"},{"m":"2025-02","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"MN","mun":"City of Jenkins"},{"m":"2025-02","cm":"2024-08","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Culver"},{"m":"2025-02","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"MA","mun":"Town of Wellesley"},{"m":"2025-02","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"MN","mun":"City of Buffalo"},{"m":"2025-02","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"UT","mun":"City of West Valley"},{"m":"2025-02","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NY","mun":"Town of Chautauqua"},{"m":"2025-02","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"OR","mun":"City of Newberg"},{"m":"2025-02","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"AR","mun":"City of De Queen"},{"m":"2025-02","cm":"2024-12","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"NC","mun":"Town of Hope Mills"},{"m":"2025-02","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"NY","mun":"Town of Mendon"},{"m":"2025-02","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"OR","mun":"City of St. Helens"},{"m":"2025-02","cm":"2025-01","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"MN","mun":"City of Breezy Point"},{"m":"2025-02","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Midway"},{"m":"2026-02","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":7164,"plan":"Custom","st":"MA","mun":"Town of Carlisle"},{"m":"2025-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NH","mun":"Town of Madison"},{"m":"2025-03","cm":"2025-01","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"MN","mun":"City of Pequot Lakes"},{"m":"2025-03","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"CA","mun":"City of Sierra Madre"},{"m":"2025-03","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1000,"plan":"Starter","st":"FL","mun":"City of Apalachicola"},{"m":"2025-03","cm":"2025-02","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"WI","mun":"City of Pewaukee"},{"m":"2025-03","cm":"2025-01","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"MN","mun":"City of Menahga"},{"m":"2025-03","cm":"2024-05","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"OR","mun":"City of Millersburg"},{"m":"2025-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"FL","mun":"Cityclerkoutsourced.com - not in MC2"},{"m":"2025-03","cm":"2024-10","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"OR","mun":"City of Central Point"},{"m":"2025-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"AZ","mun":"City of Douglas"},{"m":"2025-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"","mun":"AMR Association - not in MC2"},{"m":"2025-03","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"Orrock Township"},{"m":"2025-03","cm":"2025-02","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"WI","mun":"Village of West Milwaukee"},{"m":"2025-03","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"MA","mun":"Town of Berlin"},{"m":"2025-03","cm":"2024-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1000,"plan":"Starter","st":"OR","mun":"City of Lakeside"},{"m":"2025-03","cm":"2025-02","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1000,"plan":"Starter","st":"OR","mun":"Bay City"},{"m":"2025-03","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"NH","mun":"Town of Farmington"},{"m":"2025-03","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"PA","mun":"Borough of Mount Penn"},{"m":"2025-03","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2388,"plan":"Growth","st":"OR","mun":"Oregon City"},{"m":"2025-03","cm":"2025-02","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":396,"plan":"Starter","st":"WI","mun":"Town of Ledgeview"},{"m":"2025-03","cm":"2025-01","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"MN","mun":"City of Dayton"},{"m":"2025-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"OH","mun":"County Commissioners Medina County - not in mc2"},{"m":"2025-04","cm":"2025-03","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Littleton"},{"m":"2025-04","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1000,"plan":"Starter","st":"TX","mun":"City of Freeport"},{"m":"2025-04","cm":"2024-11","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1000,"plan":"Starter","st":"AZ","mun":"City of Maricopa"},{"m":"2025-04","cm":"2025-03","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":4000,"plan":"Custom","st":"CA","mun":"City of Newport Beach"},{"m":"2025-04","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"City of Hilliard"},{"m":"2025-04","cm":"2025-03","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1050,"plan":"Starter","st":"MA","mun":"Town of Maynard"},{"m":"2025-04","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"NC","mun":"Town of Pine Knoll Shores"},{"m":"2025-04","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Montreat"},{"m":"2025-04","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of Wimberley"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Rolesville"},{"m":"2025-04","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":9919,"plan":"Custom","st":"NV","mun":"Academica Nevada - not in MC2"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2000,"plan":"Growth","st":"NC","mun":"City of Dunn"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Wilsonville"},{"m":"2025-04","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Saint James"},{"m":"2025-04","cm":"2024-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"ND","mun":"City of Park River"},{"m":"2025-04","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1188,"plan":"Starter","st":"WA","mun":"City of Leavenworth"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"UT","mun":"City of Lindon"},{"m":"2025-04","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1188,"plan":"Starter","st":"UT","mun":"Town of Boulder"},{"m":"2025-04","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"RI","mun":"Town of Cumberland"},{"m":"2025-04","cm":"2024-12","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"CO","mun":"Town of Fraser"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Unionville"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Cottage Grove"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":3588,"plan":"Growth","st":"NC","mun":"City of Kinston"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Seneca Falls"},{"m":"2025-04","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"Lake Jackson"},{"m":"2025-05","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":12188,"plan":"Custom","st":"SC","mun":"Town of Mount Pleasant"},{"m":"2025-05","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"RI","mun":"City of Pawtucket"},{"m":"2025-05","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City of Sartell"},{"m":"2025-05","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"","mun":"Bicknell Town"},{"m":"2025-05","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"MN","mun":"City of Cokato"},{"m":"2025-05","cm":"2024-05","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"IL","mun":"City of Crest Hill"},{"m":"2025-05","cm":"2024-05","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"IL","mun":"City of Crest Hill - internal"},{"m":"2025-05","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1188,"plan":"Starter","st":"OK","mun":"City of Guthrie"},{"m":"2025-05","cm":"2025-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Cameron"},{"m":"2025-05","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"RI","mun":"Town of North Smithfield"},{"m":"2025-05","cm":"2024-11","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"NC","mun":"Town of Manteo"},{"m":"2025-05","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1548,"plan":"Starter","st":"UT","mun":"City of Taylorsville"},{"m":"2025-05","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Sennet"},{"m":"2025-05","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City of Burnsville"},{"m":"2025-05","cm":"2025-03","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CA","mun":"City of Milpitas"},{"m":"2025-05","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"WI","mun":"Village of Ephraim"},{"m":"2025-05","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Fairview"},{"m":"2025-05","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"","mun":"Uptown Whittier Improvement- not in mc2"},{"m":"2025-05","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Shallotte"},{"m":"2025-05","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Beaufort"},{"m":"2025-05","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"NC","mun":"Town of Waxhaw"},{"m":"2025-05","cm":"2025-01","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"FL","mun":"City of Atlantic Beach"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Miami Shores"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"VT","mun":"Town of Woodstock"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"NC","mun":"Town of Warsaw"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Sheridan"},{"m":"2025-06","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MI","mun":"City of Plymouth"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Nags Head"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City of Independence"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Weddington"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"IL","mun":"Village of Skokie"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Not on list","st":"NC","mun":"City of Greenville"},{"m":"2025-06","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City of Waverly"},{"m":"2025-06","cm":"2025-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"OR","mun":"City of Ashland"},{"m":"2025-06","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"OH","mun":"City of Avon"},{"m":"2025-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":3588,"plan":"Growth","st":"FL","mun":"Walton County Planning and Development Services - not in mc2"},{"m":"2025-06","cm":"2024-05","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"FL","mun":"Town of Ocean Ridge"},{"m":"2025-06","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Walpole"},{"m":"2025-06","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"City of Salisbury"},{"m":"2025-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"MA","mun":"Town of Wellesley - not added in mc2"},{"m":"2025-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"IL","mun":"Village of Swansea"},{"m":"2025-06","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1188,"plan":"Starter","st":"TX","mun":"City of Mont Belvieu"},{"m":"2025-06","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Fort Walton Beach"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"TX","mun":"City of Lago Vista"},{"m":"2025-07","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Swansboro"},{"m":"2025-07","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Bethel"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Zebulon"},{"m":"2025-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"VA","mun":"Thomas Jefferson Soil + Water Conservation District"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MI","mun":"City of Charlotte"},{"m":"2025-07","cm":"2025-06","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"NJ","mun":"Township of River Vale"},{"m":"2025-07","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"MA","mun":"Town of Uxbridge"},{"m":"2025-07","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"IO","mun":"City of Ames"},{"m":"2025-07","cm":"2023-01","ch":"Partner \u2014 HeyGov","cs":"HeyGov","lv":null,"rev":1188,"plan":"Starter","st":"AR","mun":"City of Waldron"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City of White Bear Lake"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Laurel Park"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Willamina"},{"m":"2025-07","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"IL","mun":"City of Harvard"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Landis"},{"m":"2025-07","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"AZ","mun":"City Of Casa Grande"},{"m":"2025-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"ND","mun":"State of North Dakota"},{"m":"2025-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"MI","mun":"City of Huntington Woods"},{"m":"2025-07","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"OR","mun":"City of Barlow"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Glen Alpine"},{"m":"2025-07","cm":"2023-11","ch":"Campaign Postcard","cs":"CampPostcard","lv":"SwitchGO","rev":1548,"plan":"Starter","st":"TX","mun":"City of Athens"},{"m":"2025-07","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Dedham"},{"m":"2025-07","cm":"2022-04","ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NY","mun":"Village of Rouses Point"},{"m":"2025-07","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"SC","mun":"Town Of Kiawah Island"},{"m":"2025-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"GA","mun":"City of Morrow"},{"m":"2025-07","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"FL","mun":"City of Plantation"},{"m":"2025-07","cm":"2025-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":3588,"plan":"Growth","st":"WI","mun":"Village of Sister Bay"},{"m":"2025-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"ND","mun":"Walsh County"},{"m":"2025-07","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":3588,"plan":"Starter","st":"VA","mun":"City of Newport News"},{"m":"2025-07","cm":"2024-12","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"CO","mun":"Town of Windsor"},{"m":"2025-07","cm":"2025-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1548,"plan":"Starter","st":"WI","mun":"Village of Hartland"},{"m":"2025-07","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City Of Nowthen"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"KS","mun":"Linn County"},{"m":"2025-08","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"UT","mun":"Santa Clara City"},{"m":"2025-08","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CA","mun":"City of Patterson"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Orange County - still confirming"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"CA","mun":"City of San Carlos"},{"m":"2025-08","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"MN","mun":"City of Vergas"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"CA","mun":"San Gabriel Valley Municipal Water District"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"CO","mun":"Fraser River Valley Housing Partnership"},{"m":"2025-08","cm":"2025-08","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Stanley"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1000,"plan":"Starter","st":"NC","mun":"City of King"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"MA","mun":"Sanctuary Lane"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"GA","mun":"City of Lavonia"},{"m":"2025-08","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Lowell"},{"m":"2025-08","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of Weslaco"},{"m":"2025-08","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"WA","mun":"City of Normandy Park"},{"m":"2025-08","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"NV","mun":"Washoe County School District"},{"m":"2025-08","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"MA","mun":"Town of Townsend"},{"m":"2025-08","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"CO","mun":"City of Greeley"},{"m":"2025-08","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Madeira Beach"},{"m":"2025-08","cm":"2025-04","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":7156,"plan":"Custom","st":"OH","mun":"City of Dublin"},{"m":"2025-08","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"VA","mun":"City of Williamsburg"},{"m":"2025-08","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"IL","mun":"Mount Prospect"},{"m":"2025-08","cm":"2025-02","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"City of Mebane"},{"m":"2025-08","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Groveland"},{"m":"2025-08","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"CA","mun":"Mill Valley"},{"m":"2025-08","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"OH","mun":"Chagrin Falls"},{"m":"2025-08","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":258,"plan":"Starter","st":"SC","mun":"Town of Atlantic Beach"},{"m":"2025-08","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"IL","mun":"Village of Coal City"},{"m":"2025-09","cm":"2025-08","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Burgaw"},{"m":"2025-09","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"PA","mun":"Shrewsbury Township"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"NH","mun":"Town of Lyndeborough"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"WY","mun":"Town of Thayne"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"CT","mun":"Town of Windsor"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"NC","mun":"Town of Biltmore Forest"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CA","mun":"Yorba Linda Water District"},{"m":"2025-09","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Cortlandville"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MI","mun":"Bloomfield Hills"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":3588,"plan":"Growth","st":"PA","mun":"Newberry Township"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Gallatin"},{"m":"2025-09","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Oak Hill"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"IN","mun":"Town of Trafalgar"},{"m":"2025-09","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MI","mun":"Holly Township"},{"m":"2025-09","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CA","mun":"Town of Fairfax"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"TX","mun":"City of Stratford"},{"m":"2025-09","cm":"2025-08","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Carthage"},{"m":"2025-09","cm":"2025-09","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Oak Island"},{"m":"2025-09","cm":"2025-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1548,"plan":"Starter","st":"OH","mun":"North College Hill"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"Town of Pembroke Park"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"MN","mun":"City of Tracy"},{"m":"2025-09","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Ware"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"MA","mun":"Ware - Town Manager Department"},{"m":"2025-09","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of San Marcos"},{"m":"2025-09","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Garibaldi"},{"m":"2025-09","cm":"2025-04","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"WI","mun":"Village of Maine"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"NJ","mun":"Borough of Roselle Park"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"TX","mun":"City of Freeport"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"WI","mun":"Town of Trenton"},{"m":"2025-09","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Natick"},{"m":"2025-09","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Village of Walnut Creek"},{"m":"2025-09","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"IN","mun":"Town of Monon"},{"m":"2025-10","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":3588,"plan":"Growth","st":"CA","mun":"Monterey One Water"},{"m":"2025-10","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NJ","mun":"Mount Ephraim Borough"},{"m":"2025-10","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Winter Springs"},{"m":"2025-10","cm":"2025-09","ch":"Campaign Postcard","cs":"CampPostcard","lv":null,"rev":1188,"plan":"Starter","st":"OR","mun":"City of Toledo"},{"m":"2025-10","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"FL","mun":"Town of Highland Beach"},{"m":"2025-10","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Lauderhill"},{"m":"2025-10","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"WY","mun":"Town of Star Valley Ranch"},{"m":"2025-10","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"IL","mun":"Crete Township"},{"m":"2025-10","cm":"2025-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"MI","mun":"City of Portland"},{"m":"2025-10","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"","mun":"Wellesley - NRC"},{"m":"2025-10","cm":"2025-06","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of Buda"},{"m":"2025-10","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Land Grab","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Boiling Springs"},{"m":"2025-10","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"City of Kirtland"},{"m":"2025-10","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of Katy"},{"m":"2025-10","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"City of Bedford Heights"},{"m":"2025-10","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"OR","mun":"Salem Area Mass Transit District"},{"m":"2025-10","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City of Frazee"},{"m":"2025-10","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of Dayton"},{"m":"2025-10","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Moore County"},{"m":"2025-10","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Land Grab","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Boston"},{"m":"2025-10","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of Arcola"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"City of Ashtabula"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"Mentor-on-the-Lake"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"City of Whitehall"},{"m":"2025-11","cm":"2025-05","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Scituate"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"NY","mun":"Town of Prattsville"},{"m":"2025-11","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"KS","mun":"City of Goddard"},{"m":"2025-11","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":3777,"plan":"Custom","st":"MA","mun":"Town of Sherborn"},{"m":"2025-11","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1548,"plan":"Starter","st":"NC","mun":"Town of Franklin"},{"m":"2025-11","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Maggie Valley"},{"m":"2025-11","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"GA","mun":"City of Statesboro"},{"m":"2025-11","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"","mun":"Wellesley \u2013 Advisory Committee"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"TX","mun":"City of Baytown"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"OH","mun":"City of Marion"},{"m":"2025-11","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Winterville"},{"m":"2025-11","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"City of Concord"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"FL","mun":"City of St. Cloud"},{"m":"2025-11","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"CA","mun":"City of Alameda"},{"m":"2025-11","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":3588,"plan":"Growth","st":"CA","mun":"City of Half Moon Bay"},{"m":"2025-12","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":6525,"plan":"Custom","st":"MN","mun":"City of St. Louis Park"},{"m":"2025-12","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"MN","mun":"City of Montrose"},{"m":"2025-12","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"WY","mun":"Casper/Natrona County International"},{"m":"2025-12","cm":"2025-07","ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"PA","mun":"Borough of Sinking Spring"},{"m":"2025-12","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"AR","mun":"Siloam Springs"},{"m":"2025-12","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"","mun":"Long Branch"},{"m":"2025-12","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"DE","mun":"City of Lewes"},{"m":"2025-12","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"NH","mun":"Town of Greenville"},{"m":"2025-12","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"MN","mun":"Minnesota Mowers"},{"m":null,"cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":0,"plan":"","st":"","mun":"Milltown"},{"m":"2025-12","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CA","mun":"City of East Palo Alto"},{"m":"2025-12","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Land Grab","rev":1188,"plan":"Starter","st":"OR","mun":"City of Veneta"},{"m":"2025-12","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"NC","mun":"Town of Ranlo"},{"m":"2025-12","cm":"2025-07","ch":"Campaign Postcard","cs":"CampPostcard","lv":"Town Web bundle","rev":1188,"plan":"Starter","st":"WI","mun":"Village of Webster"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Land Grab","rev":1188,"plan":"Starter","st":"IN","mun":"City of Valparaiso"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"OH","mun":"Village of Cadiz"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NJ","mun":"Milltown"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":2988,"plan":"Growth","st":"NC","mun":"City of Gastonia"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"UT","mun":"Elwood Town"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"AZ","mun":"City of Bisbee"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":2988,"plan":"Growth","st":"NJ","mun":"Winslow Township"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"NY","mun":"Town of Henrietta"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"TX","mun":"City of Stamford"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"OH","mun":"Miami Township"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Atlantic Beach"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"OH","mun":"Marion"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"UT","mun":"Monroe City"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CO","mun":"Town of Snowmass Village"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"MD","mun":"Glenareden"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":549,"plan":"Starter","st":"CA","mun":"Wrightwood CSD"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"WI","mun":"City of Kaukauna"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"WI","mun":"Town of Addison"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":549,"plan":"Starter","st":"NC","mun":"Town of Carolina Beach"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"KS","mun":"Bourbon County"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"City of Painesville"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"OH","mun":"Groveport"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":3888,"plan":"Custom","st":"NC","mun":"City of Lincolnton"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":549,"plan":"Starter","st":"NY","mun":"Town of Naples"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"City of Keizer"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"NJ","mun":"Township of Rochelle Park"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"FL","mun":"City of Westlake"},{"m":"2026-01","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"WI","mun":"Town of Farmington"},{"m":"2026-01","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1188,"plan":"Starter","st":"OR","mun":"McMinnville"},{"m":"2026-01","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1494,"plan":"Growth","st":"NC","mun":"Town of Granite Quarry"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"MI","mun":"Dexter Township"},{"m":"2026-01","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Miami Gardens"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CO","mun":"City of Cherry Hills Village"},{"m":"2026-02","cm":null,"ch":"Sales Outbound","cs":"Outbound","lv":null,"rev":1188,"plan":"Starter","st":"MN","mun":"City of Dilworth"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":3588,"plan":"Growth","st":"OH","mun":"Village of Cuyahoga Heights"},{"m":"2026-02","cm":null,"ch":"Sales Outbound","cs":"Outbound","lv":null,"rev":1188,"plan":"Starter","st":"VT","mun":"Town of Westmore"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Northbridge"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Win-Back","rev":549,"plan":"Starter","st":"MN","mun":"City of Emily"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Win-Back","rev":549,"plan":"Starter","st":"MA","mun":"Town Of Topsfield"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Land Grab","rev":1188,"plan":"Starter","st":"TX","mun":"City of Horseshoe Bay"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CT","mun":"South Windsor"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"PA","mun":"Upper Macungie Township"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"OH","mun":"City of Wadsworth"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"IN","mun":"Morgan County"},{"m":"2026-02","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"GA","mun":"City of Stockbridge"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"AR","mun":"City of Lockesburg"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"City of Springfield"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OR","mun":"Canyon City"},{"m":"2026-02","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1548,"plan":"Starter","st":"GA","mun":"City of East Point"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"OR","mun":"Town Of Mt Vernon"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Win-Back","rev":549,"plan":"Starter","st":"MN","mun":"City of Delano"},{"m":"2026-02","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":258,"plan":"Starter","st":"MO","mun":"City of Ferguson"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"TX","mun":"Seadrift"},{"m":"2026-02","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Win-Back","rev":549,"plan":"Starter","st":"NY","mun":"Town of Chatham"},{"m":"2026-02","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":3588,"plan":"Growth","st":"OR","mun":"City of Roseburg"},{"m":"2026-02","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":6521,"plan":"Custom","st":"CO","mun":"City of Wheat Ridge"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"IL","mun":"Village of St. Rose"},{"m":"2026-02","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City Of Waubun"},{"m":"2026-02","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1548,"plan":"Starter","st":"NC","mun":"Town of Whitakers"},{"m":"2026-02","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"VA","mun":"RSW Regional Jail Authority"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Colrain"},{"m":"2026-03","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1548,"plan":"Starter","st":"MI","mun":"City of Farmington Hills"},{"m":"2026-03","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"GA","mun":"City of Hampton"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Southern Pines"},{"m":"2026-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"CA","mun":"South Coast Air Quality Management District"},{"m":"2026-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"DE","mun":"Lewes Board of Public Works"},{"m":"2026-03","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"CA","mun":"City of Porterville"},{"m":"2026-03","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"NC","mun":"Village Of Marvin"},{"m":"2026-03","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"MA","mun":"City of Framingham"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"TX","mun":"City of Nevada"},{"m":"2026-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"CA","mun":"WETA (San Francisco Bay Ferry)"},{"m":"2026-03","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"NY","mun":"Town Of Harrison"},{"m":"2026-03","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":2988,"plan":"Growth","st":"ID","mun":"City of Aberdeen"},{"m":"2026-03","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":2988,"plan":"Growth","st":"FL","mun":"City of Sebastian"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"OH","mun":"City of Solon"},{"m":"2026-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Growth","st":"NC","mun":"Macon County"},{"m":"2026-03","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1548,"plan":"Starter","st":"AZ","mun":"Town of Springerville"},{"m":"2026-03","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Archer Lodge"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"PA","mun":"Lower Gwynedd Township"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MN","mun":"City of Owatonna"},{"m":"2026-03","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":3588,"plan":"Growth","st":"FL","mun":"City of Naples"},{"m":"2026-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"GA","mun":"Seminole County Georgia"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"Town of Wadesboro"},{"m":"2026-03","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"FL","mun":"City of Edgewater"},{"m":"2026-03","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":2988,"plan":"Starter","st":"WI","mun":"Village of Elm Grove"},{"m":"2026-04","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Carolina Shores"},{"m":"2026-04","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"VA","mun":"Nottoway Court House"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":2988,"plan":"Growth","st":"OR","mun":"City of Florence"},{"m":"2026-04","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"CT","mun":"Town of Plymouth"},{"m":"2026-04","cm":null,"ch":"Referral","cs":"Referral","lv":null,"rev":1188,"plan":"Starter","st":"OR","mun":"City of Eagle Point"},{"m":"2026-04","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NJ","mun":"Township of Rockaway"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"IL","mun":"Village of Elwood"},{"m":"2026-04","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"OH","mun":"Village of Wintersville"},{"m":"2026-04","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"IL","mun":"City Of Lake Forest"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"OH","mun":"Village Of South Lebanon"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Evolution","rev":2988,"plan":"Growth","st":"TX","mun":"City of Newark"},{"m":"2026-04","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"FL","mun":"City of Bartow"},{"m":"2026-04","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":3588,"plan":"Growth","st":"CT","mun":"Town of Rocky Hill"},{"m":"2026-04","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1548,"plan":"Starter","st":"OH","mun":"Village of Bellaire"},{"m":"2026-04","cm":null,"ch":"Referral","cs":"Referral","lv":null,"rev":1548,"plan":"Starter","st":"NC","mun":"Town of Kitty Hawk"},{"m":"2026-04","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"MO","mun":"City of St. Peters"},{"m":"2026-04","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NY","mun":"City of Syracuse Industrial Development Agency"},{"m":"2026-04","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1548,"plan":"Starter","st":"NC","mun":"Town of Whitakers"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Evolution","rev":1548,"plan":"Starter","st":"NY","mun":"Town of Riga"},{"m":"2026-04","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"FL","mun":"City Of Tamarac"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"MN","mun":"City of Jordan"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Evolution","rev":1188,"plan":"Starter","st":"NY","mun":"Town of Hunter"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"OH","mun":"New Albany"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"IL","mun":"City of Canton"},{"m":"2026-04","cm":null,"ch":"YouTube Commercial","cs":"YouTube","lv":null,"rev":1188,"plan":"Starter","st":"NY","mun":"Village of Ballston Spa"},{"m":"2026-04","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"State-Specific","rev":1548,"plan":"Starter","st":"NC","mun":"Town of Cornelius"},{"m":"2026-05","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"IL","mun":"Village of Tilton"},{"m":"2026-05","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1548,"plan":"Starter","st":"MI","mun":"Township Of Pine Grove"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"IL","mun":"City of Charleston"},{"m":"2026-05","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"UT","mun":"Panguitch"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"UT","mun":"Pleasant Grove"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1548,"plan":"Starter","st":"MN","mun":"City of Lonsdale"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"OH","mun":"City Of Huron"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"GA","mun":"City Of Richmond Hill"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"OH","mun":"Village Of Commercial Point"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"MA","mun":"Town of Freetown"},{"m":"2026-05","cm":null,"ch":"Conferences & Events","cs":"Events","lv":null,"rev":1548,"plan":"Starter","st":"CA","mun":"City of Hermosa Beach"},{"m":"2026-05","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"MD","mun":"City Of Salisbury"},{"m":"2026-05","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":2988,"plan":"Growth","st":"FL","mun":"City Of Sanibel"},{"m":"2026-05","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":2092,"plan":"Growth","st":"FL","mun":"City of Plant City"},{"m":"2026-05","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1548,"plan":"Starter","st":"FL","mun":"City of Perry"},{"m":"2026-05","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"30-day Postcard Experiment","rev":1188,"plan":"Starter","st":"MI","mun":"Township Of Casco"},{"m":"2026-05","cm":null,"ch":"Multi-channel (NMMD)","cs":"NMMD","lv":"NMMD","rev":1548,"plan":"Starter","st":"MN","mun":"City of Falcon Heights"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"PA","mun":"Borough of Waynesboro"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NY","mun":"Village of Sleepy Hollow"},{"m":"2026-05","cm":null,"ch":"Multi-channel (NMMD)","cs":"NMMD","lv":"NMMD","rev":1548,"plan":"Starter","st":"NC","mun":"Town of Smithfield"},{"m":"2026-05","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"NJ","mun":"New Milford"},{"m":"2026-05","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"ID","mun":"City Of Cambridge"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"PA","mun":"Township Of Hopewell"},{"m":"2026-05","cm":null,"ch":"Multi-channel (NMMD)","cs":"NMMD","lv":"NMMD","rev":2988,"plan":"Growth","st":"NC","mun":"City Of Lexington"},{"m":"2026-05","cm":null,"ch":"Multi-channel (NMMD)","cs":"NMMD","lv":"NMMD","rev":1188,"plan":"Starter","st":"RI","mun":"Middletown Public Library"},{"m":"2026-05","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"NH","mun":"Town Of New Durham"},{"m":"2026-05","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"CT","mun":"Town Of Plymouth"},{"m":"2026-05","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Evolution","rev":1188,"plan":"Starter","st":"WI","mun":"Village of Raymond"},{"m":"2026-06","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"State-Specific","rev":1548,"plan":"Starter","st":"NC","mun":"City of Southport"},{"m":"2026-06","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"UT","mun":"Town of Kanosh"},{"m":"2026-06","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":1188,"plan":"Starter","st":"NC","mun":"City Of Kannapolis"},{"m":"2026-06","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"MN","mun":"City Of Claremont"},{"m":"2026-06","cm":null,"ch":"Referral Postcard","cs":"RefPostcard","lv":"Referral Postcard","rev":2988,"plan":"Growth","st":"NH","mun":"Town Of Northfield"},{"m":"2026-06","cm":null,"ch":"Multi-channel (NMMD)","cs":"NMMD","lv":"NMMD","rev":1188,"plan":"Starter","st":"OR","mun":"Chehalem Park and Recreation District/City Of Newberg"},{"m":"2026-06","cm":null,"ch":"Campaign Postcard","cs":"CampPostcard","lv":"Coast-to-Coast","rev":1188,"plan":"Starter","st":"MO","mun":"City of Fair Grove Missouri"},{"m":"2026-06","cm":null,"ch":"Sales Outbound","cs":"Outbound","lv":"30-day Call Experiment","rev":1188,"plan":"Starter","st":"AR","mun":"City Of Morrilton"},{"m":"2026-06","cm":null,"ch":"Multi-channel (NMMD)","cs":"NMMD","lv":"NMMD","rev":1188,"plan":"Starter","st":"IN","mun":"Town of Fort Branch"},{"m":"2026-06","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1548,"plan":"Starter","st":"PA","mun":"Township Of West Pikeland"},{"m":"2026-06","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"TN","mun":"City Of Charleston"},{"m":"2026-06","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":2988,"plan":"Growth","st":"CO","mun":"Town of Timnath"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"FL","mun":"Town of Sewall's Point"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"MT","mun":"Town of Ekalaka"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Red Cross"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"CO","mun":"Greenwood Village"},{"m":"2026-06","cm":null,"ch":"Google Ads","cs":"GoogleAds","lv":null,"rev":1188,"plan":"Starter","st":"MN","mun":"Monticello"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1548,"plan":"Starter","st":"SC","mun":"City of Aiken"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"MN","mun":"Buhl City"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"PA","mun":"Borough of Northumberland"},{"m":"2026-06","cm":null,"ch":"Unattributed","cs":"Unattributed","lv":null,"rev":1188,"plan":"Starter","st":"NC","mun":"Town of Ronda"}]}/*DATA_END*/;
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const fmt = n => '$' + Math.round(n).toLocaleString();
+const fmt0 = n => Math.round(n).toLocaleString();
+const CH_COLORS = {
+  'RefPostcard':'#6c63ff','CampPostcard':'#00b4d8','GoogleAds':'#f9a825','YouTube':'#e0483b',
+  'Events':'#ff9f43','NMMD':'#9b5de5','Outbound':'#e07a5f','TownWeb':'#00a884',
+  'HeyGov':'#f15bb5','Referral':'#3ab795','Unattributed':'#b0b7c6'
+};
+const colorFor = (key,i) => CH_COLORS[key] || ['#6c63ff','#00b4d8','#f9a825','#e0483b','#ff9f43','#9b5de5','#e07a5f','#00a884','#f15bb5','#3ab795'][i%10];
+
+// records: {m, cm, ch, cs, lv, rev, plan, st, mun}
+const RECS = (DATA && DATA.records) || [];
+// foundational channel-type label (by short code)
+const CHANNEL_META = {
+  'RefPostcard':'Foundational channel + lever','CampPostcard':'Foundational channel','GoogleAds':'Foundational channel',
+  'YouTube':'Foundational channel','Events':'Foundational channel','NMMD':'Multi-channel campaign',
+  'Outbound':'Foundational channel','TownWeb':'Partner channel','HeyGov':'Partner channel',
+  'Referral':'Foundational channel','Unattributed':'No attribution'
+};
+const fullName = {
+  'RefPostcard':'Referral Postcard','CampPostcard':'Campaign Postcard','GoogleAds':'Google Ads',
+  'YouTube':'YouTube Commercial','Events':'Conferences & Events','NMMD':'Multi-channel (NMMD)',
+  'Outbound':'Sales Outbound','TownWeb':'Partner — Town Web','HeyGov':'Partner — HeyGov',
+  'Referral':'Referral','Unattributed':'Unattributed'
+};
+// CAC for these channels is grounded from this month onward (we lack earlier spend data)
+const COST_START = { 'Referral Postcard':'2025-08' };
+// "Graduates" = maturity stage along the Experiment → Growth Lever → Foundational Channel path
+const GRAD_OPTS = ['Experiment','Growth Lever','Foundational Channel','Sunset','N/A'];
+// sensible default when the user hasn't set one
+function gradDefault(row){
+  if (row.colorKey==='Unattributed') return 'N/A';
+  if (groupBy==='lever') return 'Growth Lever';
+  return row.colorKey==='NMMD' ? 'Growth Lever' : 'Foundational Channel';
+}
+function gradValue(key,row){ return state.graduates[key] || gradDefault(row); }
+// manual decision override options for the AI suggestions
+const DECISIONS = ['Scale','Maintain / optimize','Fix economics','Cut / rework'];
+const decisionCls = d => ({'Scale':'good','Maintain / optimize':'ok','Fix economics':'warn','Cut / rework':'bad'})[d] || 'grey';
+
+// ---------- state (persisted) ----------
+// DEFAULTS = the committed baseline baked into this file (so the deployed Netlify site shows your data).
+// Bake it with:  python3 save-settings.py "<exported settings.json>" --inject
+const DEFAULTS = /*SETTINGS_START*/{}/*SETTINGS_END*/;
+const LS = 'cm_growth_attr_v1';
+let state = { costs:{}, graduates:{}, decisions:{}, customFrom:'', customTo:'', colOrder:null, rowOrder:{} };
+try { Object.assign(state, DEFAULTS||{}); } catch(e){}                                  // committed baseline (everyone sees)
+try { Object.assign(state, JSON.parse(localStorage.getItem(LS)||'{}')); } catch(e){}    // per-browser edits override
+const save = () => localStorage.setItem(LS, JSON.stringify(state));
+
+let groupBy = 'foundational';   // or 'lever'
+let metric = 'rev';
+let tableFilter = '';           // transient row filter text
+const FOCUS_START = '2025-02';        // analysis focus per leadership: Feb 2025 -> now
+let period = 'focus';
+
+// ---------- period list ----------
+const months = [...new Set(RECS.map(r=>r.m).filter(Boolean))].sort();
+const lastMonth = months[months.length-1];
+const years = [...new Set(months.map(m=>m.split('-')[0]))].sort();
+const quarters = [...new Set(months.map(m=>{const[y,mo]=m.split('-');return `${y}-Q${Math.floor((+mo-1)/3)+1}`;}))].sort();
+const mLabel = m => { const[y,mo]=m.split('-'); return new Date(y,mo-1,1).toLocaleString('en',{month:'short',year:'numeric'}); };
+function buildPeriods(){
+  const sel = $('#periodSel');
+  const og = (label,inner) => `<optgroup label="${label}">${inner}</optgroup>`;
+  const opts = [
+    og('Quick', `<option value="focus">Focus — Feb 2025 → now</option><option value="all">All time</option><option value="custom">Custom range…</option>`),
+    og('Year', [...years].reverse().map(y=>`<option value="${y}">${y}</option>`).join('')),
+    og('Quarter', [...quarters].reverse().map(q=>`<option value="${q}">${q.replace('-Q',' Q')}</option>`).join('')),
+    og('Month', [...months].reverse().map(m=>`<option value="${m}">${mLabel(m)}</option>`).join('')),
+  ];
+  sel.innerHTML = opts.join('');
+  sel.value = period;
+}
+// inclusive [start,end] month bounds for the active period, or null = unbounded
+function periodRange(){
+  if (period==='all') return null;
+  if (period==='focus') return [FOCUS_START, lastMonth];
+  if (period==='custom'){
+    const a = state.customFrom||months[0], b = state.customTo||lastMonth;
+    return a<=b ? [a,b] : [b,a];
+  }
+  let m = period.match(/^(\d{4})-Q(\d)$/);     // quarter
+  if (m){ const q=+m[2]; const s=`${m[1]}-${String((q-1)*3+1).padStart(2,'0')}`, e=`${m[1]}-${String(q*3).padStart(2,'0')}`; return [s,e]; }
+  if (/^\d{4}$/.test(period)) return [`${period}-01`, `${period}-12`];   // year
+  return [period, period];                                              // single month
+}
+function inRange(m, range){ return !range || (m && m>=range[0] && m<=range[1]); }
+
+// ---------- aggregation ----------
+function recsForPeriod(){
+  const r = periodRange();
+  return RECS.filter(x=>inRange(x.m, r));
+}
+// Foundational view shows only true channels (campaigns excluded); Levers view shows only true campaigns.
+const FOUNDATIONAL_HIDE = new Set(['CampPostcard','NMMD']);  // campaigns, not foundational channels
+const LEVER_MERGE = {'30-day Postcard Experiment':'30-day Experiment','30-day Call Experiment':'30-day Experiment'};
+function keyOf(r){
+  if (groupBy==='lever') return r.lv ? (LEVER_MERGE[r.lv]||r.lv) : null;     // null = no campaign tag -> excluded
+  return FOUNDATIONAL_HIDE.has(r.cs) ? null : r.cs;                          // campaign-type channels -> excluded
+}
+// a channel's cost-coverage start (we lack spend before it) — keyed by lever name or channel full name
+function costStartFor(row){ return COST_START[row.key] || COST_START[fullName[row.colorKey]] || null; }
+function aggregate(){
+  const recs = recsForPeriod();
+  const range = periodRange();
+  const map = new Map();
+  for (const r of recs){
+    const k = keyOf(r);
+    if(k==null) continue;   // excluded from this view (campaign-in-channel-view, or channel-only-in-lever-view)
+    if(!map.has(k)) map.set(k,{key:k,cust:0,rev:0,colorKey:r.cs,months:[]});
+    const o=map.get(k); o.cust++; o.rev+=r.rev; o.months.push(r.m);
+  }
+  // billable customers = those inside the cost-coverage window (for grounded CAC)
+  for (const o of map.values()){
+    const cs = costStartFor(o); o.costStart = cs;
+    if (!cs){ o.billable = o.cust; }
+    else {
+      const lo = (range && range[0] > cs) ? range[0] : cs;
+      o.billable = o.months.filter(m=>m && m>=lo && (!range||m<=range[1])).length;
+    }
+  }
+  return [...map.values()].sort((a,b)=>b.rev-a.rev);
+}
+// cost is entered per active period; each period bucket is independent (predictable for monthly reviews)
+// raw cost value: a number (incl 0), the string 'na' (spend unknown), or undefined (not entered)
+function costRaw(key){ return (state.costs[period]||{})[key]; }
+function metrics(row){
+  const arpa = row.cust ? row.rev/row.cust : 0;       // annual revenue per account
+  const raw = costRaw(row.key);
+  const isNA = raw==='na';
+  const known = typeof raw==='number';                // includes explicit $0
+  const cost = known ? raw : 0;
+  const free = known && cost===0;
+  const denom = (row.billable!=null) ? row.billable : row.cust;   // grounded to cost-coverage window
+  const grounded = row.costStart && denom!==row.cust;
+  const billRev = arpa*denom;
+  const cac = !known ? null : (free ? 0 : (denom>0 ? cost/denom : null));
+  const payback = !known ? null : (free ? 0 : (cac && arpa>0 ? cac/(arpa/12) : null));   // months
+  const ret = !known ? null : (free ? Infinity : (cost>0 ? billRev/cost : null));        // first-year return (×)
+  return {arpa,cost,known,isNA,free,cac,payback,ret,net:row.rev-cost,denom,grounded};
+}
+function verdict(row,m){
+  if (row.key==='Unattributed') return {cls:'grey',label:'No attribution',tip:'Tighten lead-source tagging so this revenue can be credited.'};
+  if (m.isNA) return {cls:'grey',label:'Cost unknown',tip:'Spend marked N/A — enter a number (or $0) to evaluate CAC, payback and ROI.'};
+  if (!m.known) return {cls:'grey',label:'Add cost',tip:'Enter spend (or $0, or N/A) for this period to evaluate economics.'};
+  if (m.free) return {cls:'good',label:'Scale (free)',tip:'Zero spend — the best possible economics. Protect and feed this channel.'};
+  const p = m.payback;
+  if (p<=12) return {cls:'good',label:'Scale',tip:`Payback ${p.toFixed(0)} mo (first-year return ${m.ret.toFixed(1)}×) — recovered within a year. Fund harder.`};
+  if (p<=18) return {cls:'ok',label:'Maintain / optimize',tip:`Payback ${p.toFixed(0)} mo — healthy. Optimize CAC or ACV before scaling.`};
+  if (p<=24) return {cls:'warn',label:'Fix economics',tip:`Payback ${p.toFixed(0)} mo — slow. Cut cost-per-win or lift ACV before adding budget.`};
+  return {cls:'bad',label:'Cut / rework',tip:`Payback ${p.toFixed(0)} mo — spend isn't recovered within ~2 years of revenue. Rework or pause.`};
+}
+const fmtRet = r => r===Infinity ? '∞×' : r.toFixed(1)+'×';
+// net revenue (revenue − spend) tone: green positive, yellow slightly negative (lost ≤25% of revenue), red very negative
+function netTone(net, ref){ if(net>=0) return 'good'; if(ref>0 && net>=-0.25*ref) return 'warn'; return 'bad'; }
+const netStyle = cls => cls?` style="color:var(--${cls});font-weight:700"`:'';
+
+// ---------- render: KPIs ----------
+function renderKPIs(){
+  const recs = recsForPeriod();
+  const cust = recs.length;
+  const attributed = recs.filter(r=>r.cs!=='Unattributed').length;
+  const rows = aggregate();
+  // Total overview reflects ONLY channels/campaigns that have a cost entered (known cost, incl $0)
+  let spend=0, billCust=0, costedRev=0, costedRevFull=0, costedCust=0, anyKnown=false;
+  rows.forEach(r=>{ const m=metrics(r); if(m.known){ anyKnown=true; spend+=m.cost; billCust+=m.denom; costedRev+=m.arpa*m.denom; costedRevFull+=r.rev; costedCust+=r.cust; } });
+  const blendedCac = (anyKnown && billCust>0) ? spend/billCust : null;
+  const ret = anyKnown ? (spend>0 ? costedRev/spend : Infinity) : null;   // first-year return on costed channels
+  const net = costedRevFull-spend;
+  const cov = cust? Math.round(attributed/cust*100):0;
+
+  const cards = [
+    ['Net Revenue (ARR)', anyKnown?fmt(costedRevFull):'—', anyKnown?`${costedCust} customers with cost`:'enter costs below'],
+    ['Total spend', anyKnown?fmt(spend):'—', anyKnown?'entered for period':'enter costs below'],
+    ['Net revenue after spend', anyKnown?`<span${netStyle(netTone(net,costedRevFull))}>${fmt(net)}</span>`:'—', anyKnown?'costed revenue − cost':'no cost entered'],
+    ['Blended CAC', blendedCac!=null?fmt(blendedCac):'—', blendedCac!=null?'cost ÷ paid-window wins':'needs cost'],
+    ['First-year ROI', ret!=null?fmtRet(ret):'—', ret!=null?'return on spend':'needs cost'],
+    ['Attribution coverage', cov+'%', `${attributed}/${cust} tagged`],
+  ];
+  $('#kpis').innerHTML = cards.map(([l,v,s])=>`
+    <div class="kpi"><div class="k-label">${l}</div><div class="k-val">${v}</div><div class="k-sub">${s}</div></div>`).join('');
+  const sel=$('#periodSel');
+  $('#ovSub').textContent = period==='all' ? `all time · ${months.length} months`
+    : period==='focus' ? `Feb 2025 → now · ${cust} customers`
+    : (sel.selectedOptions[0]?sel.selectedOptions[0].textContent:'');
+}
+
+// ---------- render: table (column-config; movable columns/rows + filter) ----------
+const COL_ORDER_DEFAULT = ['name','cust','rev','arpa','cost','cac','roi','verdict','grad'];
+function renderTable(){
+  $('#tblTitle').textContent = groupBy==='lever'?'Per-lever economics':'Per-channel economics';
+  const na='<span class="muted-cell">N/A</span>', dash='<span class="muted-cell">—</span>';
+  // column registry: each has a label, a cell(r,m,v,ctx) renderer, and a foot(tot) renderer
+  const COLS = {
+    name:{label:(groupBy==='lever'?'Growth lever':'Channel'),
+      cell:(r,m,v,c)=>{ const col=colorFor(r.colorKey,c.i); const t=groupBy==='lever'?(fullName[r.colorKey]||''):(CHANNEL_META[r.key]||'');
+        return `<div class="ch-name"><span class="dot" style="background:${col}"></span>${fullName[r.key]||r.key}</div><div class="ch-type">${t}</div>`; },
+      foot:()=>'Total / blended'},
+    cust:{label:'Customers', cell:r=>r.cust, foot:t=>t.cust},
+    rev:{label:'Net Revenue',
+      cell:(r,m)=>{ const cls=m.known?netTone(m.net,r.rev):null; return `<span${netStyle(cls)} title="${m.known?'Net after spend: '+fmt(m.net):'gross revenue'}">${fmt(r.rev)}</span>`; },
+      foot:t=>{ const cls=t.anyKnown?netTone(t.rev-t.cost,t.rev):null; return `<span${netStyle(cls)}>${fmt(t.rev)}</span>`; }},
+    arpa:{label:'ARPA', cell:(r,m)=>fmt(m.arpa), foot:t=>fmt(t.cust?t.rev/t.cust:0)},
+    cost:{label:'Cost (editable)',
+      cell:(r,m,v,c)=>`<div class="cost-cell"><input class="cost" type="number" min="0" step="100" data-key="${c.k}" value="${m.known?m.cost:''}" placeholder="—" ${m.isNA?'disabled':''}><button class="na-btn ${m.isNA?'on':''}" data-key="${c.k}" title="Mark spend as unknown">N/A</button></div>`,
+      foot:t=>t.anyKnown?fmt(t.cost):'—'},
+    cac:{label:'CAC',
+      cell:(r,m)=>m.isNA?na:!m.known?dash:m.free?'$0':fmt(m.cac)+(m.grounded?` <span class="ground" title="CAC grounded from ${r.costStart}: only the ${m.denom} customers since cost coverage began are counted (of ${r.cust}).">*</span>`:''),
+      foot:t=>{ const c=(t.anyKnown&&t.billCust>0)?t.cost/t.billCust:null; return c!=null?fmt(c):'—'; }},
+    roi:{label:'1yr ROI', cell:(r,m)=>m.isNA?na:!m.known?dash:fmtRet(m.ret),
+      foot:t=>{ const rr=t.anyKnown?(t.cost>0?t.costedRev/t.cost:Infinity):null; return rr!=null?fmtRet(rr):'—'; }},
+    verdict:{label:'Verdict <span class="spark" title="AI-generated suggestion">✨</span>',
+      cell:(r,m,v)=>`<span class="pill ${v.cls}">${v.label}</span>`, foot:()=>''},
+    grad:{label:'Graduates',
+      cell:(r,m,v,c)=>`<select class="grad" data-key="${c.k}">${GRAD_OPTS.map(o=>`<option ${o===gradValue(r.key,r)?'selected':''}>${o}</option>`).join('')}</select>`, foot:()=>''},
+  };
+  let order=(state.colOrder&&state.colOrder.length?state.colOrder:COL_ORDER_DEFAULT).filter(id=>COLS[id]);
+  COL_ORDER_DEFAULT.forEach(id=>{ if(!order.includes(id)) order.push(id); });
+
+  // rows: full view, then manual order, then filter for display
+  const allRows=aggregate();
+  const viewCustTotal=allRows.reduce((s,r)=>s+r.cust,0);
+  const ro=(state.rowOrder&&state.rowOrder[groupBy])||[];
+  const ordered=[...allRows].sort((a,b)=>{
+    const ia=ro.indexOf(a.key), ib=ro.indexOf(b.key);
+    if(ia!==-1||ib!==-1) return (ia===-1?1e9:ia)-(ib===-1?1e9:ib);   // manually-ordered rows first
+    return b.rev-a.rev;
+  });
+  const filt=tableFilter.trim().toLowerCase();
+  const disp=filt?ordered.filter(r=>(fullName[r.key]||r.key).toLowerCase().includes(filt)):ordered;
+
+  // totals over displayed rows
+  const tot={cust:0,rev:0,cost:0,billCust:0,costedRev:0,anyKnown:false};
+  const mCache={};
+  disp.forEach(r=>{ const m=metrics(r); mCache[r.key]=m; tot.cust+=r.cust; tot.rev+=r.rev; if(m.known){tot.anyKnown=true;tot.cost+=m.cost;tot.billCust+=m.denom;tot.costedRev+=m.arpa*m.denom;} });
+
+  const head=`<thead><tr><th class="dragcol" aria-hidden="true"></th>${order.map(id=>`<th draggable="true" data-col="${id}" title="Drag to reorder column">${COLS[id].label}</th>`).join('')}</tr></thead>`;
+  const body=disp.map((r,i)=>{
+    const m=mCache[r.key], v=verdict(r,m), k=encodeURIComponent(r.key), ctx={i,k};
+    return `<tr data-key="${k}"><td class="rowh"><span class="rhandle" draggable="true" data-key="${k}" title="Drag to reorder row">⠿</span></td>${order.map(id=>`<td>${COLS[id].cell(r,m,v,ctx)}</td>`).join('')}</tr>`;
+  }).join('');
+  const foot=`<tfoot><tr><td></td>${order.map(id=>`<td>${COLS[id].foot(tot)}</td>`).join('')}</tr></tfoot>`;
+  $('#chTable').innerHTML = head+'<tbody>'+body+'</tbody>'+foot;
+
+  // coverage note (view exclusions, independent of filter)
+  const totalPeriod=recsForPeriod().length;
+  $('#viewNote').innerHTML = viewCustTotal<totalPeriod
+    ? (groupBy==='lever'
+        ? `Showing ${viewCustTotal} of ${totalPeriod} wins — Growth Levers covers only campaign-tracked customers (channel-only & untagged wins live under Foundational Channels).`
+        : `Showing ${viewCustTotal} of ${totalPeriod} wins — Foundational Channels excludes campaign-only wins (Campaign Postcard, Multi-channel NMMD); see Growth Levers.`)
+      + (filt?` · row filter active`:'')
+    : (filt?`Row filter active — ${disp.length} of ${ordered.length} rows shown.`:'');
+  const grounded=disp.filter(r=>mCache[r.key].grounded);
+  $('#cacNote').innerHTML = grounded.length
+    ? `* ${grounded.map(r=>fullName[r.key]||r.key).join(', ')}: CAC grounded from ${[...new Set(grounded.map(r=>r.costStart))].join(', ')} — we don't have spend before then, so only customers since are counted.`
+    : '';
+
+  // bind cost inputs / N/A / graduates
+  const bucket=()=>(state.costs[period]=state.costs[period]||{});
+  document.querySelectorAll('input.cost').forEach(inp=>inp.addEventListener('change',e=>{
+    const key=decodeURIComponent(e.target.dataset.key), v=e.target.value.trim();
+    if(v==='') delete bucket()[key]; else bucket()[key]=+v||0; save(); renderAll();
+  }));
+  document.querySelectorAll('.na-btn').forEach(btn=>btn.addEventListener('click',e=>{
+    const key=decodeURIComponent(e.target.dataset.key);
+    if(bucket()[key]==='na') delete bucket()[key]; else bucket()[key]='na'; save(); renderAll();
+  }));
+  document.querySelectorAll('select.grad').forEach(sel=>sel.addEventListener('change',e=>{
+    state.graduates[decodeURIComponent(e.target.dataset.key)]=e.target.value; save();
+  }));
+
+  // drag-reorder columns
+  let dragCol=null;
+  document.querySelectorAll('#chTable th[draggable]').forEach(th=>{
+    th.addEventListener('dragstart',e=>{ dragCol=th.dataset.col; e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text',''); });
+    th.addEventListener('dragover',e=>{ e.preventDefault(); th.classList.add('drop-col'); });
+    th.addEventListener('dragleave',()=>th.classList.remove('drop-col'));
+    th.addEventListener('drop',e=>{ e.preventDefault(); th.classList.remove('drop-col');
+      const target=th.dataset.col; if(!dragCol||dragCol===target) return;
+      const o=order.slice(); o.splice(o.indexOf(dragCol),1); o.splice(o.indexOf(target),0,dragCol);
+      state.colOrder=o; save(); renderTable();
+    });
+  });
+  // drag-reorder rows (via handle)
+  let dragRow=null;
+  document.querySelectorAll('#chTable .rhandle').forEach(h=>{
+    h.addEventListener('dragstart',e=>{ dragRow=decodeURIComponent(h.dataset.key); h.closest('tr').classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text',''); });
+    h.addEventListener('dragend',()=>document.querySelectorAll('tr.dragging').forEach(t=>t.classList.remove('dragging')));
+  });
+  document.querySelectorAll('#chTable tbody tr').forEach(tr=>{
+    tr.addEventListener('dragover',e=>{ e.preventDefault(); tr.classList.add('drop-row'); });
+    tr.addEventListener('dragleave',()=>tr.classList.remove('drop-row'));
+    tr.addEventListener('drop',e=>{ e.preventDefault(); tr.classList.remove('drop-row');
+      const target=decodeURIComponent(tr.dataset.key); if(!dragRow||dragRow===target) return;
+      const keys=ordered.map(r=>r.key); keys.splice(keys.indexOf(dragRow),1); keys.splice(keys.indexOf(target),0,dragRow);
+      state.rowOrder=state.rowOrder||{}; state.rowOrder[groupBy]=keys; save(); renderTable();
+    });
+  });
+}
+
+// ---------- render: monthly bars ----------
+function renderBars(){
+  // months within the selected period only
+  const range = periodRange();
+  const visMonths = months.filter(m=>inRange(m, range));
+  const present = [...new Set(RECS.map(r=>r.cs))];
+  const byMonth = visMonths.map(m=>{
+    const o={m, total:0, seg:{}};
+    for(const k of present) o.seg[k]=0;
+    RECS.filter(r=>r.m===m).forEach(r=>{ const val=metric==='rev'?r.rev:1; o.seg[r.cs]+=val; o.total+=val; });
+    return o;
+  });
+  const max = Math.max(1,...byMonth.map(o=>o.total));
+  const used = present.filter(k=>byMonth.some(o=>o.seg[k]>0));
+  $('#bars').innerHTML = byMonth.map(o=>{
+    // segment heights are a % of the stack (which itself is total/max of the column) — so use v/total
+    const segs = o.total>0 ? present.map(k=>{
+      const v=o.seg[k]; if(!v) return '';
+      return `<div class="bseg" style="height:${v/o.total*100}%;background:${colorFor(k)}" title="${fullName[k]||k}: ${metric==='rev'?fmt(v):v}"></div>`;
+    }).join('') : '';
+    const [y,mo]=o.m.split('-');
+    const lbl=new Date(y,mo-1,1).toLocaleString('en',{month:'short',year:'2-digit'});
+    return `<div class="bcol" data-month="${o.m}" title="${lbl}: ${metric==='rev'?fmt(o.total):o.total} — click for breakdown">
+      <div class="bstack" style="height:${Math.max(o.total/max*100,o.total>0?1.5:0)}%">${segs}</div>
+      <div class="blabel">${lbl}</div></div>`;
+  }).join('');
+  $('#legend').innerHTML = used.map(k=>`<span><span class="dot" style="background:${colorFor(k)}"></span>${fullName[k]||k}</span>`).join('');
+}
+
+// ---------- render: framework ----------
+function renderFramework(){
+  const rows = aggregate().filter(r=>r.key!=='Unattributed');
+  const cards = rows.map((r,i)=>{
+    const m=metrics(r); const auto=verdict(r,m);
+    const man=state.decisions[r.key];                       // manual override label, if set
+    const v = man ? {label:man, cls:decisionCls(man), tip:auto.tip, manual:true} : auto;
+    const trend = monthTrend(r.key);
+    return {r,m,v,auto,man,i,trend,score:scoreRow(r,m,v)};
+  }).sort((a,b)=>b.score-a.score);
+
+  // headline
+  const nm = r => fullName[r.key]||r.key;
+  const scalers = cards.filter(c=>c.v.label==='Scale').map(c=>nm(c.r));
+  const fixers = cards.filter(c=>c.v.cls==='warn'||c.v.cls==='bad').map(c=>nm(c.r));
+  const nocost = cards.filter(c=>c.v.label==='Add cost'||c.v.label==='Cost unknown').length;
+  let hl = '<b>What the numbers say right now:</b> ';
+  const bits=[];
+  if(scalers.length) bits.push(`Fund <b>${scalers.slice(0,3).join(', ')}</b> harder — CAC recovered within ~12 months.`);
+  if(fixers.length) bits.push(`Fix economics on <b>${fixers.slice(0,3).join(', ')}</b> before adding budget.`);
+  if(nocost) bits.push(`Add or confirm spend for <b>${nocost}</b> channel(s) to complete the picture.`);
+  bits.push(`Biggest single lever remains <b>trial→paid conversion</b> (not in this view yet) — wire in the trial export to measure it.`);
+  $('#headline').innerHTML = hl + bits.join(' ');
+
+  $('#recs').innerHTML = cards.map(c=>{
+    const {r,m,v,man,trend}=c;
+    const k = encodeURIComponent(r.key);
+    return `<div class="rec ${v.cls}">
+      <h3>${fullName[r.key]||r.key}<span class="verdict pill ${v.cls}">${v.label}</span></h3>
+      <p>${v.tip}${trend?` <b style="color:var(--text)">${trend}</b>`:''}</p>
+      <div class="metrics">
+        <div>Customers<b>${r.cust}</b></div>
+        <div>Net Rev<b>${fmt(r.rev)}</b></div>
+        <div>ARPA<b>${fmt(m.arpa)}</b></div>
+        <div>CAC<b>${m.isNA?'N/A':!m.known?'—':m.free?'$0':fmt(m.cac)}</b></div>
+        <div>Payback<b>${m.isNA?'N/A':!m.known?'—':m.payback.toFixed(0)+' mo'}</b></div>
+        <div>1yr ROI<b>${m.isNA?'N/A':!m.known?'—':fmtRet(m.ret)}</b></div>
+      </div>
+      <div class="dec-row">
+        <span class="dec-tag ${man?'manual':''}">${man?'● Manual override':'✨ AI suggestion'}</span>
+        <select class="dec" data-key="${k}">
+          <option value="">Use AI suggestion</option>
+          ${DECISIONS.map(d=>`<option ${d===man?'selected':''}>${d}</option>`).join('')}
+        </select>
+      </div></div>`;
+  }).join('');
+  document.querySelectorAll('select.dec').forEach(sel=>{
+    sel.addEventListener('change', e=>{
+      const key=decodeURIComponent(e.target.dataset.key);
+      if(e.target.value) state.decisions[key]=e.target.value; else delete state.decisions[key];
+      save(); renderFramework();
+    });
+  });
+}
+function scoreRow(r,m,v){
+  const base={good:4,ok:3,warn:2,bad:1,grey:0}[v.cls]||0;
+  return base*100000 + r.rev;  // group by verdict, then revenue
+}
+function monthTrend(key){
+  if(/^\d{4}-\d{2}$/.test(period) || months.length<2) return '';   // skip when a single month is selected
+  const last=months[months.length-1], prev=months[months.length-2];
+  const c = m => RECS.filter(r=>r.m===m && keyOf(r)===key).length;
+  const a=c(prev), b=c(last);
+  if(a===0&&b===0) return '';
+  const d=b-a;
+  const arrow = d>0?'▲':d<0?'▼':'—';
+  return `${arrow} ${Math.abs(d)} MoM (${a}→${b} wins)`;
+}
+
+// ---------- export / import ----------
+function exportData(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='growth-attribution-settings.json'; a.click();
+}
+function importData(file){
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      if(file.name.endsWith('.json')){ Object.assign(state, JSON.parse(rd.result)); }
+      else { // costs CSV: period,channel,spend
+        const lines=rd.result.trim().split(/\r?\n/).slice(1);
+        for(const ln of lines){ const [p,k,s]=ln.split(','); if(!k)continue;
+          const per=(p||'_alltime').trim(); state.costs[per]=state.costs[per]||{}; state.costs[per][k.trim()]=+s||0; }
+      }
+      save(); syncControls(); renderAll();
+    }catch(e){ alert('Could not read file: '+e.message); }
+  };
+  rd.readAsText(file);
+}
+
+// ---------- monthly breakdown modal ----------
+function openMonth(m){
+  const recs = RECS.filter(r=>r.m===m);
+  const total = recs.reduce((s,r)=>s+r.rev,0);
+  const map = new Map();
+  for(const r of recs){ if(!map.has(r.cs)) map.set(r.cs,{cs:r.cs,cust:0,rev:0}); const o=map.get(r.cs); o.cust++; o.rev+=r.rev; }
+  const list = [...map.values()].sort((a,b)=>b.rev-a.rev);
+  const [y,mo]=m.split('-');
+  $('#modalTitle').textContent = new Date(y,mo-1,1).toLocaleString('en',{month:'long',year:'numeric'})+' — channel breakdown';
+  const rowsHtml = list.map((o,i)=>`<tr>
+    <td><div class="ch-name"><span class="dot" style="background:${colorFor(o.cs,i)}"></span>${fullName[o.cs]||o.cs}</div></td>
+    <td>${o.cust}</td><td>${fmt(o.rev)}</td><td>${fmt(o.cust?o.rev/o.cust:0)}</td>
+    <td>${total?Math.round(o.rev/total*100):0}%</td></tr>`).join('');
+  $('#modalTable').innerHTML = `<thead><tr><th>Channel</th><th>Customers</th><th>Net Revenue</th><th>ARPA</th><th>% of month</th></tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot><tr><td>Total</td><td>${recs.length}</td><td>${fmt(total)}</td><td>${fmt(recs.length?total/recs.length:0)}</td><td>100%</td></tr></tfoot>`;
+  $('#modal').classList.remove('hidden');
+}
+function closeModal(){ $('#modal').classList.add('hidden'); }
+
+// ---------- wiring ----------
+function syncControls(){
+  $('#customFrom').value=state.customFrom||'';
+  $('#customTo').value=state.customTo||'';
+  $('#customWrap').classList.toggle('hidden', period!=='custom');
+}
+function renderAll(){ renderKPIs(); renderTable(); renderBars(); renderFramework(); }
+
+function init(){
+  if(!DATA){ document.querySelector('.wrap').innerHTML='<h1>No data loaded.</h1><p>Run <code>python3 build-data.py --inject</code> to populate.</p>'; return; }
+  $('#dataMeta').innerHTML = `source: <b>${DATA.source}</b> · ${DATA.count} customers · ${months[0]} → ${months[months.length-1]}`;
+  $('#customFrom').min=$('#customTo').min=months[0]; $('#customFrom').max=$('#customTo').max=lastMonth;
+  buildPeriods(); syncControls();
+  $('#periodSel').addEventListener('change',e=>{period=e.target.value;syncControls();renderAll();});
+  ['customFrom','customTo'].forEach(id=>$('#'+id).addEventListener('change',e=>{state[id]=e.target.value;save();renderAll();}));
+  $('#bars').addEventListener('click',e=>{ const col=e.target.closest('.bcol'); if(col) openMonth(col.dataset.month); });
+  $('#modalClose').addEventListener('click',closeModal);
+  $('#modal').addEventListener('click',e=>{ if(e.target.id==='modal') closeModal(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+  document.querySelectorAll('#groupTabs button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#groupTabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); groupBy=b.dataset.g; renderAll();}));
+  document.querySelectorAll('#metricTabs button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#metricTabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); metric=b.dataset.m; renderBars();}));
+  $('#exportBtn').addEventListener('click',exportData);
+  $('#importBtn').addEventListener('click',()=>$('#importFile').click());
+  $('#importFile').addEventListener('change',e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
+  $('#tblFilter').addEventListener('input',e=>{ tableFilter=e.target.value; renderTable(); });
+  $('#resetLayout').addEventListener('click',()=>{ state.colOrder=null; state.rowOrder={}; tableFilter=''; $('#tblFilter').value=''; save(); renderTable(); });
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
