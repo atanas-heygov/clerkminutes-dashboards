@@ -99,6 +99,14 @@
   .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .modal-head h2{font-size:1.1rem}
   #modalClose{border:none;background:var(--surface2);width:32px;height:32px;border-radius:8px;font-size:.9rem}
+  /* Magic Key gate — blur the entire page (except the gate modal) until the key is entered */
+  .wrap { transition: filter .3s ease; }
+  body.locked .wrap { filter: blur(8px); pointer-events:none; user-select:none; }
+  .confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:120}
+  #gateInput{font:inherit;padding:10px 12px;border:1px solid var(--border);border-radius:9px;width:100%;text-align:center;letter-spacing:.04em}
+  .shake{animation:shake .32s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}60%{transform:translateX(7px)}}
+  #magicBtn.on{background:var(--good-bg);color:var(--good);border-color:var(--good)}
 
   /* monthly chart */
   .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
@@ -176,6 +184,7 @@
     </div>
     <div class="spacer"></div>
     <div class="ctrl" style="align-self:flex-end;flex-direction:row;gap:8px">
+      <button id="magicBtn">🔒 Enter Magic Key</button>
       <button id="exportBtn">Export</button>
       <button id="importBtn">Import</button>
       <input type="file" id="importFile" accept=".json,.csv" class="hidden">
@@ -257,6 +266,17 @@
       <button id="modalClose" aria-label="Close">✕</button>
     </div>
     <div class="card" style="margin-top:6px"><table id="modalTable"></table></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="gate">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div style="font-size:2.2rem;line-height:1">🔑</div>
+    <h2 style="margin:8px 0 4px">Magic Key</h2>
+    <p class="sec-sub">This dashboard is protected. Enter the Magic Key to view it.</p>
+    <input id="gateInput" type="password" placeholder="Magic Key" autocomplete="off" style="margin-top:14px">
+    <div id="gateErr" style="color:var(--bad);font-size:.8rem;height:18px;margin:6px 0"></div>
+    <button class="primary" id="gateUnlock" style="width:100%">Unlock dashboard</button>
   </div>
 </div>
 
@@ -351,6 +371,42 @@ function setSync(s, when){
   el.textContent = ({loading:'⟳ Loading shared data…', saving:'⟳ Saving…',
     saved:'☁ Shared via Supabase — all edits sync'+t, error:'⚠ Cloud offline — saved to this browser only'})[s] || '';
   el.dataset.s = s;
+}
+
+// ---------- Magic Key (shared edit password) ----------
+const MAGIC_KEY = 'ClerkMinutesRocks';   // <-- the shared Magic Key; change this string to set your own
+let unlocked = sessionStorage.getItem('cm_unlocked')==='1';
+function applyLock(){
+  document.body.classList.toggle('locked', !unlocked);
+  const b=document.getElementById('magicBtn');
+  if(b){ b.textContent = unlocked ? '🔓 Unlocked' : '🔒 Enter Magic Key'; b.classList.toggle('on', unlocked); }
+}
+function showGate(){ $('#gateErr').textContent=''; $('#gate').classList.remove('hidden'); setTimeout(()=>$('#gateInput').focus(),40); }
+function openGate(){
+  if(unlocked){ unlocked=false; sessionStorage.removeItem('cm_unlocked'); applyLock(); renderAll(); return; }  // re-lock (re-blur)
+  showGate();
+}
+function tryUnlock(){
+  if($('#gateInput').value.trim()===MAGIC_KEY){
+    unlocked=true; sessionStorage.setItem('cm_unlocked','1');
+    $('#gate').classList.add('hidden'); $('#gateInput').value=''; $('#gateErr').textContent='';
+    applyLock(); renderAll(); confetti();
+  } else {
+    $('#gateErr').textContent='Wrong Magic Key — try again.';
+    const m=$('#gate .modal'); m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake');
+  }
+}
+function confetti(){
+  const c=document.createElement('canvas'); c.className='confetti-canvas';
+  c.width=innerWidth; c.height=innerHeight; document.body.appendChild(c);
+  const ctx=c.getContext('2d'), cols=['#6c63ff','#00b4d8','#f9a825','#0f9d6e','#e0483b','#f15bb5'], P=[];
+  for(let i=0;i<140;i++) P.push({x:innerWidth/2,y:innerHeight*0.34,vx:(Math.random()-0.5)*13,vy:Math.random()*-13-4,
+    g:0.32+Math.random()*0.22,s:5+Math.random()*6,col:cols[i%cols.length],rot:Math.random()*6.28,vr:(Math.random()-0.5)*0.32});
+  setTimeout(()=>c.remove(), 2600);   // guaranteed cleanup even if rAF is throttled
+  let t=0;(function f(){ if(!c.isConnected) return; t++; ctx.clearRect(0,0,c.width,c.height);
+    P.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.col; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.62); ctx.restore(); });
+    if(t<95) requestAnimationFrame(f); else c.remove(); })();
 }
 
 let groupBy = 'foundational';   // or 'lever'
@@ -499,8 +555,8 @@ function renderTable(){
   // column registry: each has a label, a cell(r,m,v,ctx) renderer, and a foot(tot) renderer
   const COLS = {
     name:{label:(groupBy==='lever'?'Growth lever':'Channel'),
-      cell:(r,m,v,c)=>{ const col=colorFor(r.colorKey,c.i); const t=groupBy==='lever'?(fullName[r.colorKey]||''):(CHANNEL_META[r.key]||'');
-        return `<div class="ch-name"><span class="dot" style="background:${col}"></span>${fullName[r.key]||r.key}</div><div class="ch-type">${t}</div>`; },
+      cell:(r,m,v,c)=>{ const col=colorFor(r.colorKey,c.i);
+        return `<div class="ch-name"><span class="dot" style="background:${col}"></span>${fullName[r.key]||r.key}</div>`; },
       foot:()=>'Total / blended'},
     cust:{label:'Customers', cell:r=>r.cust, foot:t=>t.cust},
     rev:{label:'Net Revenue',
@@ -540,7 +596,7 @@ function renderTable(){
   const mCache={};
   disp.forEach(r=>{ const m=metrics(r); mCache[r.key]=m; tot.cust+=r.cust; tot.rev+=r.rev; if(m.known){tot.anyKnown=true;tot.cost+=m.cost;tot.billCust+=m.denom;tot.costedRev+=m.arpa*m.denom;} });
 
-  const head=`<thead><tr><th class="dragcol" aria-hidden="true"></th>${order.map(id=>`<th draggable="true" data-col="${id}" title="Drag to reorder column">${COLS[id].label}</th>`).join('')}</tr></thead>`;
+  const head=`<thead><tr><th class="dragcol" aria-hidden="true"></th>${order.map(id=>`<th draggable="${unlocked}" data-col="${id}" title="${unlocked?'Drag to reorder column':''}">${COLS[id].label}</th>`).join('')}</tr></thead>`;
   const body=disp.map((r,i)=>{
     const m=mCache[r.key], v=verdict(r,m), k=encodeURIComponent(r.key), ctx={i,k};
     return `<tr data-key="${k}"><td class="rowh"><span class="rhandle" draggable="true" data-key="${k}" title="Drag to reorder row">⠿</span></td>${order.map(id=>`<td>${COLS[id].cell(r,m,v,ctx)}</td>`).join('')}</tr>`;
@@ -750,7 +806,7 @@ function syncControls(){
   $('#customTo').value=state.customTo||'';
   $('#customWrap').classList.toggle('hidden', period!=='custom');
 }
-function renderAll(){ renderKPIs(); renderTable(); renderBars(); renderFramework(); }
+function renderAll(){ renderKPIs(); renderTable(); renderBars(); renderFramework(); applyLock(); }
 
 async function init(){
   if(!DATA){ document.querySelector('.wrap').innerHTML='<h1>No data loaded.</h1><p>Run <code>python3 build-data.py --inject</code> to populate.</p>'; return; }
@@ -774,7 +830,12 @@ async function init(){
   $('#importFile').addEventListener('change',e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
   $('#tblFilter').addEventListener('input',e=>{ tableFilter=e.target.value; renderTable(); });
   $('#resetLayout').addEventListener('click',()=>{ state.colOrder=null; state.rowOrder={}; tableFilter=''; $('#tblFilter').value=''; save(); renderTable(); });
+  $('#magicBtn').addEventListener('click',openGate);
+  $('#gateUnlock').addEventListener('click',tryUnlock);
+  $('#gateInput').addEventListener('keydown',e=>{ if(e.key==='Enter') tryUnlock(); });
+  // gate is NOT dismissable by backdrop while locked — the whole page is blurred, so there'd be no way back
   renderAll();                                   // instant paint from local cache / defaults
+  if(!unlocked) showGate();                       // page stays blurred until the Magic Key is entered
   const remote = await loadRemote();             // then load the shared cloud data
   if(remote && remote.data){ Object.assign(state, remote.data); syncControls(); renderAll(); }
 }

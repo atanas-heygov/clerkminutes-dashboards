@@ -6,6 +6,7 @@
 <title>ClerkMinutes Cross-department Strategy</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#faf9f5; --primary:#ffffff; --secondary:#f0eee7; --border:rgba(0,0,0,.12); --border2:rgba(0,0,0,.22);
@@ -62,6 +63,9 @@ tr.dragover td{box-shadow:inset 0 2px 0 #378ADD;}
 .iconbtn:hover{color:var(--tp);background:var(--secondary);}
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:50;cursor:zoom-out;}
 .lightbox img{max-width:90%;max-height:90%;border-radius:8px;}
+.sync{font-size:12px;padding:2px 9px;border-radius:999px;border:0.5px solid var(--border);color:var(--ts);display:inline-flex;align-items:center;gap:5px;}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;}
+.sync.ok{color:#1D9E75;}.sync.saving{color:#BA7517;}.sync.off{color:#A32D2D;}
 </style>
 </head>
 <body>
@@ -77,6 +81,7 @@ tr.dragover td{box-shadow:inset 0 2px 0 #378ADD;}
     <button id="b-upload"><i class="ti ti-upload"></i> Upload sheet</button>
     <button id="b-export"><i class="ti ti-download"></i> Export</button>
     <button id="b-reset"><i class="ti ti-refresh"></i> Reset</button>
+    <span id="sync" class="sync">Connecting…</span>
     <span id="msg" class="muted" style="font-size:12px;"></span>
     <input id="file" type="file" accept=".csv,text/csv" style="display:none;">
   </div>
@@ -166,14 +171,43 @@ let widths=load(WKEY,{});
 const GUTW=26,DELW=42;
 const colW=k=>widths[k]||DEF[k].w;
 let sortKey=null,sortDir=1;
-function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){setMsg('Heads up: local storage is full (screenshots take space) — changes work this session but may not all persist after refresh.');}}
-function saveOpts(){try{localStorage.setItem(OKEY,JSON.stringify(OPTS));}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){setMsg('Heads up: local storage is full (screenshots take space) — changes work this session but may not all persist after refresh.');}schedulePush();}
+function saveOpts(){try{localStorage.setItem(OKEY,JSON.stringify(OPTS));}catch(e){}schedulePush();}
 function saveCols(){try{localStorage.setItem(CKEY,JSON.stringify(order));}catch(e){}}
 function saveWidths(){try{localStorage.setItem(WKEY,JSON.stringify(widths));}catch(e){}}
 function ensureOpts(){SELECT_FIELDS.forEach(f=>{if(!OPTS[f])OPTS[f]=[];data.forEach(d=>{const v=(d[f]||'').trim();if(v&&!OPTS[f].includes(v))OPTS[f].push(v);});});saveOpts();}
 
 const $=id=>document.getElementById(id);
 function setMsg(t){$('msg').textContent=t;}
+
+const SUPA_URL='https://zndykivykagytkcrscjm.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZHlraXZ5a2FneXRrY3JzY2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODQwOTUsImV4cCI6MjA5NzQ2MDA5NX0.J1QzlXMQqqjSDUgSKQ_6x3KNP7WzHBiyWNl9PQea7oA';
+const BOARD_ID='main';
+const sb=(window.supabase&&SUPA_URL)?window.supabase.createClient(SUPA_URL,SUPA_KEY):null;
+let editing=false,pendingRemote=null,pushTimer=null;
+function setSync(t,c){const e=$('sync');if(e){e.textContent=t;e.className='sync '+(c||'');}}
+function cacheLocal(){try{localStorage.setItem(KEY,JSON.stringify(data));localStorage.setItem(OKEY,JSON.stringify(OPTS));}catch(e){}}
+function schedulePush(){if(!sb)return;setSync('Saving…','saving');clearTimeout(pushTimer);pushTimer=setTimeout(pushRemote,600);}
+async function pushRemote(){if(!sb)return;try{
+  const {error}=await sb.from('growth_board').upsert({id:BOARD_ID,data:data,options:OPTS,updated_at:new Date().toISOString()});
+  if(error)throw error;setSync('Synced','ok');
+}catch(e){setSync('Offline — saved locally','off');}}
+async function pullRemote(){if(!sb){setSync('Local only','off');return;}setSync('Connecting…','');try{
+  const {data:row,error}=await sb.from('growth_board').select('data,options').eq('id',BOARD_ID).maybeSingle();
+  if(error)throw error;
+  if(row&&Array.isArray(row.data)&&row.data.length){data=row.data;if(row.options&&Object.keys(row.options).length)OPTS=row.options;cacheLocal();renderTable();refresh();setSync('Synced','ok');}
+  else{await pushRemote();}
+  subscribeRemote();
+}catch(e){setSync('Offline — local only','off');}}
+function subscribeRemote(){if(!sb)return;
+  sb.channel('board-'+BOARD_ID).on('postgres_changes',{event:'*',schema:'public',table:'growth_board',filter:'id=eq.'+BOARD_ID},p=>{if(p.new)applyRemote(p.new);}).subscribe();}
+function applyRemote(row){
+  const sd=JSON.stringify(row.data||[])===JSON.stringify(data),so=JSON.stringify(row.options||{})===JSON.stringify(OPTS);
+  if(sd&&so)return;
+  if(editing){pendingRemote=row;return;}
+  if(Array.isArray(row.data))data=row.data;if(row.options&&Object.keys(row.options).length)OPTS=row.options;
+  cacheLocal();renderTable();refresh();setSync('Updated from team','ok');
+}
 
 function renderTable(){
   ensureOpts();
@@ -382,6 +416,9 @@ function parseCSV(text){
   return rows;
 }
 renderTable();refresh();
+$('tbody').addEventListener('focusin',()=>{editing=true;});
+$('tbody').addEventListener('focusout',()=>{editing=false;if(pendingRemote){const r=pendingRemote;pendingRemote=null;applyRemote(r);}});
+pullRemote();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{bar('levelChart',tally('level'));bar('statusChart',tally('status'));});
 </script>
 </body>
