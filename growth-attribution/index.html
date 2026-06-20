@@ -111,7 +111,10 @@
   #gateInput{font:inherit;padding:10px 12px;border:1px solid var(--border);border-radius:9px;width:100%;text-align:center;letter-spacing:.04em}
   .shake{animation:shake .32s}
   @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}60%{transform:translateX(7px)}}
-  #magicBtn.on{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+  #revealBtn.on,#editBtn.on{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+  /* preview mode: revealed but no edit key — edit controls disabled */
+  body.noedit input.cost, body.noedit .na-btn, body.noedit select.grad, body.noedit select.dec,
+  body.noedit .archbtn, body.noedit .rhandle, body.noedit #resetLayout, body.noedit #importBtn { pointer-events:none; opacity:.5; }
 
   /* monthly chart */
   .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
@@ -189,7 +192,8 @@
     </div>
     <div class="spacer"></div>
     <div class="ctrl" style="align-self:flex-end;flex-direction:row;gap:8px">
-      <button id="magicBtn">🔒 Enter Magic Key</button>
+      <button id="revealBtn">🔒 Magic Reveal Key</button>
+      <button id="editBtn">✏️ Magic Edit Key</button>
       <button id="exportBtn">Export</button>
       <button id="importBtn">Import</button>
       <input type="file" id="importFile" accept=".json,.csv" class="hidden">
@@ -280,11 +284,11 @@
 <div class="overlay hidden" id="gate">
   <div class="modal" style="max-width:360px;text-align:center">
     <div style="font-size:2.2rem;line-height:1">🔑</div>
-    <h2 style="margin:8px 0 4px">Magic Key</h2>
-    <p class="sec-sub">This dashboard is protected. Enter the Magic Key to view it.</p>
-    <input id="gateInput" type="password" placeholder="Magic Key" autocomplete="off" style="margin-top:14px">
+    <h2 id="gateTitle" style="margin:8px 0 4px">Magic Key</h2>
+    <p class="sec-sub" id="gateMsg">Enter the key.</p>
+    <input id="gateInput" type="password" placeholder="Key" autocomplete="off" style="margin-top:14px">
     <div id="gateErr" style="color:var(--bad);font-size:.8rem;height:18px;margin:6px 0"></div>
-    <button class="primary" id="gateUnlock" style="width:100%">Unlock dashboard</button>
+    <button class="primary" id="gateUnlock" style="width:100%">Unlock</button>
   </div>
 </div>
 
@@ -381,28 +385,50 @@ function setSync(s, when){
   el.dataset.s = s;
 }
 
-// ---------- Magic Key (shared edit password) ----------
-const MAGIC_KEY = 'ClerkMinutesRocks';   // <-- the shared Magic Key; change this string to set your own
-let unlocked = sessionStorage.getItem('cm_unlocked')==='1';
+// ---------- Magic Keys: Reveal (view/blur) + Edit (edit/preview) ----------
+const MAGIC_REVEAL = 'ClerkMinutesRocks';   // reveals the blurred dashboard (view access)
+const MAGIC_EDIT   = 'AIisMagic';           // unlocks editing (otherwise preview/read-only)
+let revealed = sessionStorage.getItem('cm_revealed')==='1';
+let canEdit  = sessionStorage.getItem('cm_canedit')==='1';
+let gateMode = 'reveal';                     // which key the gate is currently asking for
 function applyLock(){
-  document.body.classList.toggle('locked', !unlocked);
-  const b=document.getElementById('magicBtn');
-  if(b){ b.textContent = unlocked ? '🔓 Unlocked' : '🔒 Enter Magic Key'; b.classList.toggle('on', unlocked); }
+  document.body.classList.toggle('locked', !revealed);   // blur whole page until revealed
+  document.body.classList.toggle('noedit', !canEdit);    // disable edit controls until edit key entered
+  const rb=document.getElementById('revealBtn');
+  if(rb){ rb.textContent = revealed?'🔓 Hide dashboard':'🔒 Magic Reveal Key'; rb.classList.toggle('on', revealed); }
+  const eb=document.getElementById('editBtn');
+  if(eb){ eb.textContent = canEdit?'✏️ Editing on':'✏️ Magic Edit Key'; eb.classList.toggle('on', canEdit); }
   const f=document.getElementById('floatUnlock');
-  if(f) f.classList.toggle('hidden', unlocked);   // sharp floating unlock button, shown only while locked
+  if(f) f.classList.toggle('hidden', revealed);          // floating reveal button, shown only while blurred
 }
-function showGate(){ $('#gateErr').textContent=''; $('#gate').classList.remove('hidden'); setTimeout(()=>$('#gateInput').focus(),40); }
-function openGate(){
-  if(unlocked){ unlocked=false; sessionStorage.removeItem('cm_unlocked'); applyLock(); renderAll(); return; }  // re-lock (re-blur)
-  showGate();
+function showGate(){
+  const reveal = gateMode==='reveal';
+  $('#gateTitle').textContent = reveal ? 'Magic Reveal Key' : 'Magic Edit Key';
+  $('#gateMsg').textContent   = reveal ? 'This dashboard is protected. Enter the Magic Reveal Key to view it.'
+                                       : 'Enter the Magic Edit Key to edit. You can keep previewing without it.';
+  $('#gateUnlock').textContent = reveal ? 'Reveal dashboard' : 'Unlock editing';
+  $('#gateInput').value=''; $('#gateErr').textContent='';
+  $('#gate').classList.remove('hidden'); setTimeout(()=>$('#gateInput').focus(),40);
+}
+function openReveal(){
+  if(revealed){ revealed=false; sessionStorage.removeItem('cm_revealed'); applyLock(); renderAll(); return; }  // hide (re-blur)
+  gateMode='reveal'; showGate();
+}
+function openEdit(){
+  if(!revealed){ gateMode='reveal'; showGate(); return; }       // must reveal first
+  if(canEdit){ canEdit=false; sessionStorage.removeItem('cm_canedit'); applyLock(); renderAll(); return; }  // back to preview
+  gateMode='edit'; showGate();
 }
 function tryUnlock(){
-  if($('#gateInput').value.trim()===MAGIC_KEY){
-    unlocked=true; sessionStorage.setItem('cm_unlocked','1');
+  const val=$('#gateInput').value.trim();
+  const ok = gateMode==='reveal' ? val===MAGIC_REVEAL : val===MAGIC_EDIT;
+  if(ok){
+    if(gateMode==='reveal'){ revealed=true; sessionStorage.setItem('cm_revealed','1'); }
+    else { canEdit=true; sessionStorage.setItem('cm_canedit','1'); }
     $('#gate').classList.add('hidden'); $('#gateInput').value=''; $('#gateErr').textContent='';
     applyLock(); renderAll(); confetti();
   } else {
-    $('#gateErr').textContent='Wrong Magic Key — try again.';
+    $('#gateErr').textContent='Wrong key — try again.';
     const m=$('#gate .modal'); m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake');
   }
 }
@@ -611,10 +637,10 @@ function renderTable(){
   const mCache={};
   disp.forEach(r=>{ const m=metrics(r); mCache[r.key]=m; tot.cust+=r.cust; tot.rev+=r.rev; if(m.known){tot.anyKnown=true;tot.cost+=m.cost;tot.billCust+=m.denom;tot.costedRev+=m.arpa*m.denom;} });
 
-  const head=`<thead><tr><th class="dragcol" aria-hidden="true"></th>${order.map(id=>`<th draggable="${unlocked}" data-col="${id}" title="${unlocked?'Drag to reorder column':''}">${COLS[id].label}</th>`).join('')}</tr></thead>`;
+  const head=`<thead><tr><th class="dragcol" aria-hidden="true"></th>${order.map(id=>`<th draggable="${canEdit}" data-col="${id}" title="${canEdit?'Drag to reorder column':''}">${COLS[id].label}</th>`).join('')}</tr></thead>`;
   const body=disp.map((r,i)=>{
     const m=mCache[r.key], v=verdict(r,m), k=encodeURIComponent(r.key), ctx={i,k};
-    const archCell = `<span class="rhandle" draggable="true" data-key="${k}" title="Drag to reorder row">⠿</span><button class="archbtn" data-key="${k}" title="${showArchived?'Restore row':'Archive row'}">${showArchived?'↩':'✕'}</button>`;
+    const archCell = `<span class="rhandle" draggable="${canEdit}" data-key="${k}" title="Drag to reorder row">⠿</span><button class="archbtn" data-key="${k}" title="${showArchived?'Restore row':'Archive row'}">${showArchived?'↩':'✕'}</button>`;
     return `<tr data-key="${k}"><td class="rowh">${archCell}</td>${order.map(id=>`<td>${COLS[id].cell(r,m,v,ctx)}</td>`).join('')}</tr>`;
   }).join('');
   const foot=`<tfoot><tr><td></td>${order.map(id=>`<td>${COLS[id].foot(tot)}</td>`).join('')}</tr></tfoot>`;
@@ -860,13 +886,14 @@ async function init(){
   $('#tblFilter').addEventListener('input',e=>{ tableFilter=e.target.value; renderTable(); });
   $('#resetLayout').addEventListener('click',()=>{ state.colOrder=null; state.rowOrder={}; tableFilter=''; $('#tblFilter').value=''; save(); renderTable(); });
   $('#showArchived').addEventListener('click',()=>{ showArchived=!showArchived; renderTable(); });
-  $('#magicBtn').addEventListener('click',openGate);
+  $('#revealBtn').addEventListener('click',openReveal);
+  $('#editBtn').addEventListener('click',openEdit);
   $('#gateUnlock').addEventListener('click',tryUnlock);
   $('#gateInput').addEventListener('keydown',e=>{ if(e.key==='Enter') tryUnlock(); });
   $('#gate').addEventListener('click',e=>{ if(e.target.id==='gate') $('#gate').classList.add('hidden'); });  // dismiss to peek; floating button reopens
-  $('#floatUnlock').addEventListener('click',showGate);
+  $('#floatUnlock').addEventListener('click',()=>{ gateMode='reveal'; showGate(); });
   renderAll();                                   // instant paint from local cache / defaults
-  if(!unlocked) showGate();                       // page stays blurred until the Magic Key is entered
+  if(!revealed){ gateMode='reveal'; showGate(); }  // page stays blurred until the Reveal key is entered
   const remote = await loadRemote();             // then load the shared cloud data
   if(remote && remote.data){ Object.assign(state, remote.data); syncControls(); renderAll(); }
 }

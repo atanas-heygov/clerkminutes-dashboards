@@ -4,6 +4,7 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>Custom Tier Tracker — ClerkMinutes</title>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<style>
 		:root {
 			--bg: #0f172a;
@@ -33,6 +34,10 @@
 		.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
 		h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
 		.sub { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
+		.sync { display: inline-block; font-size: 0.75rem; padding: 2px 9px; border-radius: 20px; margin-top: 4px; background: var(--bg-card-2); color: var(--text-muted); }
+		.sync.ok { background: rgba(52,211,153,0.16); color: var(--green); }
+		.sync.saving { background: rgba(96,165,250,0.16); color: var(--blue); }
+		.sync.off { background: rgba(251,191,36,0.16); color: var(--amber); }
 		.actions { display: flex; gap: 8px; flex-wrap: wrap; }
 		button, .btn {
 			font: inherit; cursor: pointer; border-radius: 9px; border: 1px solid var(--border);
@@ -117,6 +122,7 @@
 		<div class="topbar">
 			<div>
 				<h1>Custom Tier Tracker</h1>
+				<span id="sync" class="sync">Connecting…</span>
 			</div>
 			<div class="actions">
 				<input type="file" id="import" accept=".csv,.xlsx,.xls" style="display:none" />
@@ -201,13 +207,41 @@
 
 	<script>
 	const FEATURE_TAGS = ['Customizable minutes','AI Actions','Collaborative Agenda Builder','Export DOC/PDF','Extra meetings','Extra team members','Extra boards/departments','Off-site recording','Onboarding / Service order','Check processing'];
+	// ---- Supabase (shared data) ----
+	// Shares the growth-strategy project, but uses its OWN table (custom_proposals).
+	// No data is shared with the growth dashboard's growth_board table.
+	const SUPA_URL = 'https://zndykivykagytkcrscjm.supabase.co';
+	const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZHlraXZ5a2FneXRrY3JzY2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODQwOTUsImV4cCI6MjA5NzQ2MDA5NX0.J1QzlXMQqqjSDUgSKQ_6x3KNP7WzHBiyWNl9PQea7oA';
+	const TABLE = 'custom_proposals';
 	const STORE_KEY = 'custom-tier-proposals';
-	let proposals = load();
+	const sb = (window.supabase && SUPA_URL) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
+	let proposals = [];
 	let editId = null;
 
-	function load() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch(e){ return []; } }
-	function save() { localStorage.setItem(STORE_KEY, JSON.stringify(proposals)); }
-	function nextId() { return proposals.reduce((m,p)=>Math.max(m,p.id||0),0) + 1; }
+	function setSync(t,c){ const e=document.getElementById('sync'); if(e){ e.textContent=t; e.className='sync '+(c||''); } }
+	function cacheLocal(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(proposals)); } catch(e){} }
+	function loadLocal(){ try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch(e){ return []; } }
+	function nextId(){ return proposals.reduce((m,p)=>Math.max(m,p.id||0),0) + 1; }
+
+	async function init(){
+		if (!sb) { proposals = loadLocal(); setSync('Local only (Supabase not loaded)','off'); render(); return; }
+		setSync('Connecting…','');
+		try {
+			const { data, error } = await sb.from(TABLE).select('*');
+			if (error) throw error;
+			proposals = data || []; cacheLocal(); render(); setSync('Synced','ok');
+			subscribe();
+		} catch(e) {
+			proposals = loadLocal(); render();
+			setSync('Offline — local only (' + (e.message||'no table?') + ')','off');
+		}
+	}
+	function subscribe(){
+		sb.channel('custom_proposals')
+			.on('postgres_changes', { event:'*', schema:'public', table:TABLE }, reload)
+			.subscribe();
+	}
+	async function reload(){ try { const { data } = await sb.from(TABLE).select('*'); if (data) { proposals = data; cacheLocal(); render(); } } catch(e){} }
 
 	const num = v => { if(v==null||v==='') return 0; const n = Number(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
 	const money = v => '$' + Math.round(num(v)).toLocaleString();
@@ -338,11 +372,10 @@
 	}
 	function closeForm() { document.getElementById('overlay').classList.remove('show'); }
 	function f(name, v) { document.getElementById('f_'+name).value = v==null?'':v; }
-	function saveForm() {
+	async function saveForm() {
 		const features = [...document.querySelectorAll('#f_features input:checked')].map(c=>c.value);
 		const rec = {
-			id: editId!=null ? editId : nextId(),
-			customer: val('f_customer'), proposal_name: val('f_proposal_name'), status: val('f_status'),
+			customer: val('f_customer'), proposal_name: val('f_proposal_name')||null, status: val('f_status'),
 			signer: val('f_signer')||null, date_created: val('f_date')||null,
 			value: val('f_value')? num(val('f_value')) : null,
 			plan_purchased: val('f_plan_purchased')||null,
@@ -351,11 +384,35 @@
 			notes: val('f_notes')||null, features,
 		};
 		if (!rec.customer) { alert('Customer / Lead is required'); return; }
-		if (editId!=null) proposals = proposals.map(p=>p.id===editId?rec:p);
-		else proposals.push(rec);
-		save(); closeForm(); render();
+		if (sb) {
+			setSync('Saving…','saving');
+			try {
+				if (editId!=null) {
+					const { error } = await sb.from(TABLE).update({ ...rec, updated_at:new Date().toISOString() }).eq('id', editId);
+					if (error) throw error;
+					proposals = proposals.map(p=>p.id===editId?{...p,...rec}:p);
+				} else {
+					const { data, error } = await sb.from(TABLE).insert(rec).select().single();
+					if (error) throw error;
+					proposals.push(data);
+				}
+				setSync('Synced','ok');
+			} catch(e) { alert('Save failed: ' + e.message); setSync('Error — not saved','off'); return; }
+		} else {
+			if (editId!=null) proposals = proposals.map(p=>p.id===editId?{...rec,id:editId}:p);
+			else proposals.push({ ...rec, id:nextId() });
+		}
+		cacheLocal(); closeForm(); render();
 	}
-	function del(id) { if(confirm('Delete this proposal?')) { proposals = proposals.filter(p=>p.id!==id); save(); render(); } }
+	async function del(id) {
+		if (!confirm('Delete this proposal?')) return;
+		if (sb) {
+			setSync('Saving…','saving');
+			try { const { error } = await sb.from(TABLE).delete().eq('id', id); if (error) throw error; setSync('Synced','ok'); }
+			catch(e) { alert('Delete failed: ' + e.message); setSync('Error','off'); return; }
+		}
+		proposals = proposals.filter(p=>p.id!==id); cacheLocal(); render();
+	}
 
 	// ---- CSV import (flexible headers; handles $/commas, M/D/YYYY, summary rows, notes column) ----
 	function parseCsv(text) {
@@ -370,7 +427,7 @@
 		if (cur!==''||row.length){ row.push(cur); rows.push(row); }
 		return rows.filter(r=>r.some(c=>c.trim()!==''));
 	}
-	function importRows(text) {
+	async function importRows(text) {
 		const rows = parseCsv(text);
 		if (rows.length<2) { alert('No rows found'); return; }
 		const headers = rows[0].map(h=>h.toLowerCase().trim());
@@ -385,7 +442,8 @@
 			follow: col('follow'), notes: headers.findIndex(h=>h===''||h.includes('note')), feat: col('feature'), date: col('date'),
 		};
 		const get=(r,i)=> i>=0 && i<r.length ? r[i] : '';
-		let added=0, skipped=0;
+		let skipped=0;
+		const toInsert=[];
 		const existing = new Set(proposals.map(p=>`${(p.customer||'').toLowerCase()}|${p.date_created||''}`));
 		for (let i=1;i<rows.length;i++){
 			const r = rows[i];
@@ -397,8 +455,8 @@
 			existing.add(key);
 			const planText = String(get(r,ci.plan_purchased)||'').toLowerCase();
 			const featRaw = (get(r,ci.feat)||'').trim();
-			proposals.push({
-				id: nextId(), customer, status: statusFromText(get(r,ci.status)),
+			toInsert.push({
+				customer, status: statusFromText(get(r,ci.status)),
 				signer: (get(r,ci.signer)||'').trim()||null, date_created: date,
 				value: num(get(r,ci.value))||null,
 				plan_purchased: planText.includes('growth')?'growth':planText.includes('starter')?'starter':null,
@@ -409,10 +467,21 @@
 				notes: (get(r,ci.notes)||'').trim()||null,
 				features: featRaw? featRaw.split(/[;,]/).map(x=>x.trim()).filter(Boolean): [],
 			});
-			added++;
 		}
-		save(); render();
-		alert(`Imported ${added} proposal(s)` + (skipped?`, skipped ${skipped} duplicate(s)`:''));
+		if (!toInsert.length) { alert(`Nothing to import` + (skipped?` — ${skipped} already exist`:'')); return; }
+		if (sb) {
+			setSync('Importing…','saving');
+			try {
+				const { data, error } = await sb.from(TABLE).insert(toInsert).select();
+				if (error) throw error;
+				proposals = proposals.concat(data||[]);
+				setSync('Synced','ok');
+			} catch(e) { alert('Import failed: ' + e.message); setSync('Error','off'); return; }
+		} else {
+			for (const rec of toInsert) proposals.push({ ...rec, id:nextId() });
+		}
+		cacheLocal(); render();
+		alert(`Imported ${toInsert.length} proposal(s)` + (skipped?`, skipped ${skipped} duplicate(s)`:''));
 	}
 	document.getElementById('import').addEventListener('change', e=>{
 		const file = e.target.files[0]; if(!file) return;
@@ -435,7 +504,7 @@
 	const q = s => `"${String(s==null?'':s).replace(/"/g,'""')}"`;
 
 	document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeForm(); });
-	render();
+	init();
 	</script>
 </body>
 </html>
