@@ -210,8 +210,8 @@
 	// ---- Supabase (shared data) ----
 	// Shares the growth-strategy project, but uses its OWN table (custom_proposals).
 	// No data is shared with the growth dashboard's growth_board table.
-	const SUPA_URL = 'https://zndykivykagytkcrscjm.supabase.co';
-	const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZHlraXZ5a2FneXRrY3JzY2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODQwOTUsImV4cCI6MjA5NzQ2MDA5NX0.J1QzlXMQqqjSDUgSKQ_6x3KNP7WzHBiyWNl9PQea7oA';
+	const SUPA_URL = 'https://rjywjxmhfmcwlqnanppo.supabase.co';
+	const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqeXdqeG1oZm1jd2xxbmFucHBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODM2OTYsImV4cCI6MjA5NzQ1OTY5Nn0.7waWEKn1RCsXC81ETZX65MkfORKcCtojs93X-2ci3T0';
 	const TABLE = 'custom_proposals';
 	const STORE_KEY = 'custom-tier-proposals';
 	const sb = (window.supabase && SUPA_URL) ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
