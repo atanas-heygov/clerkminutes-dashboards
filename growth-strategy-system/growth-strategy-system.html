@@ -184,8 +184,8 @@ function ensureOpts(){SELECT_FIELDS.forEach(f=>{if(!OPTS[f])OPTS[f]=[];data.forE
 const $=id=>document.getElementById(id);
 function setMsg(t){$('msg').textContent=t;}
 
-const SUPA_URL='https://zndykivykagytkcrscjm.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZHlraXZ5a2FneXRrY3JzY2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODQwOTUsImV4cCI6MjA5NzQ2MDA5NX0.J1QzlXMQqqjSDUgSKQ_6x3KNP7WzHBiyWNl9PQea7oA';
+const SUPA_URL='https://rjywjxmhfmcwlqnanppo.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqeXdqeG1oZm1jd2xxbmFucHBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODM2OTYsImV4cCI6MjA5NzQ1OTY5Nn0.7waWEKn1RCsXC81ETZX65MkfORKcCtojs93X-2ci3T0';
 const BOARD_ID='main';
 const sb=(window.supabase&&SUPA_URL)?window.supabase.createClient(SUPA_URL,SUPA_KEY):null;
 let editing=false,pendingRemote=null,pushTimer=null;
