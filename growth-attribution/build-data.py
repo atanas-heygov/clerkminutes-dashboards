@@ -157,13 +157,16 @@ def build(csv_path):
         note = col(r, 'Notes / Lead Source')
         channel, short, lever, cmonth = classify(note)
         won_month = parse_month(col(r, 'Created date'))
+        bc = col(r, 'Billing cycle').strip().lower()
+        bc = 'M' if bc.startswith('month') else 'A'   # Monthly -> M ; Annual/blank -> A (annual is the dominant default)
         recs.append({
             'm':  won_month,                 # month became paid customer (revenue recognition)
             'cm': cmonth,                    # campaign month from code (when the lever ran)
             'ch': channel,
             'cs': short,
             'lv': lever,
-            'rev': round(money(col(r, 'Annual $'))),
+            'rev': round(money(col(r, 'Annual $'))),   # annualized revenue (ARR) for both billing types
+            'bc': bc,                        # billing cycle: A=annual (paid upfront) / M=monthly (paid over 12)
             'plan': col(r, 'Plan'),
             'st': col(r, 'State'),
             'mun': col(r, 'Municipality'),
