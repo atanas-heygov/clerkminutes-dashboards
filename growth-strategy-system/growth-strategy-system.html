@@ -25,6 +25,7 @@ input,select,button{font-family:inherit;font-size:13px;color:var(--tp);backgroun
 input:focus,select:focus{outline:none;box-shadow:0 0 0 2px var(--border2);}
 button{cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:34px;transition:background .12s;}
 button:hover{background:var(--secondary);}button:active{transform:scale(.98);}
+button[disabled]{opacity:.45;cursor:not-allowed;}button[disabled]:hover{background:var(--primary);}
 table{border-collapse:collapse;font-size:13px;min-width:1180px;}
 thead th{text-align:left;font-weight:500;color:var(--ts);font-size:12px;padding:8px 8px;border-bottom:0.5px solid var(--border2);white-space:nowrap;position:relative;overflow:hidden;}
 .resizer{position:absolute;top:0;right:0;width:7px;height:100%;cursor:col-resize;user-select:none;}
@@ -77,6 +78,7 @@ tr.dragover td{box-shadow:inset 0 2px 0 #378ADD;}
   </div>
 
   <div class="toolbar">
+    <button id="b-lock"><i class="ti ti-lock"></i> View only</button>
     <button id="b-add"><i class="ti ti-plus"></i> Add campaign</button>
     <button id="b-upload"><i class="ti ti-upload"></i> Upload sheet</button>
     <button id="b-export"><i class="ti ti-download"></i> Export</button>
@@ -171,6 +173,8 @@ let widths=load(WKEY,{});
 const GUTW=26,DELW=42;
 const colW=k=>widths[k]||DEF[k].w;
 let sortKey=null,sortDir=1;
+const MAGIC_KEY='AIisMagic',LKEY='clerkminutes-growth-unlocked';
+let locked=localStorage.getItem(LKEY)!=='1';
 function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){setMsg('Heads up: local storage is full (screenshots take space) — changes work this session but may not all persist after refresh.');}schedulePush();}
 function saveOpts(){try{localStorage.setItem(OKEY,JSON.stringify(OPTS));}catch(e){}schedulePush();}
 function saveCols(){try{localStorage.setItem(CKEY,JSON.stringify(order));}catch(e){}}
@@ -227,26 +231,29 @@ function renderTable(){
         const opts=OPTS[c.key].map(o=>`<option value="${esc(o)}" ${o===d[c.key]?'selected':''}>${esc(isOp&&emo(o)?emo(o)+' '+o:o)}</option>`).join('');
         const marker=isOp?(emo(d[c.key])?'':`<span class="dot" style="background:${cf(d[c.key])}"></span>`):`<span class="dot" style="background:${cf(d[c.key])}"></span>`;
         return `<td><div class="cellflex">${marker}
-          <select data-i="${i}" data-f="${c.key}">${opts}<option value="__add__">+ Add new…</option></select></div></td>`;
+          <select data-i="${i}" data-f="${c.key}"${locked?' disabled':''}>${opts}<option value="__add__">+ Add new…</option></select></div></td>`;
       }
       if(c.type==='preview'){
         const v=d.preview||'',img=d.previewImg||'';
         const thumb=img?`<img class="thumb" src="${img}" data-prevopen title="Click to enlarge">`:`<span class="thumbph"><i class="ti ti-photo"></i></span>`;
-        const rm=img?`<button class="iconbtn" data-prevrm="${i}" title="Remove screenshot"><i class="ti ti-x"></i></button>`:'';
+        const rm=img&&!locked?`<button class="iconbtn" data-prevrm="${i}" title="Remove screenshot"><i class="ti ti-x"></i></button>`:'';
+        const up=locked?'':`<button class="iconbtn" data-prevup="${i}" title="Upload screenshot"><i class="ti ti-upload"></i></button>`;
         return `<td><div style="display:flex;flex-direction:column;gap:4px;">
-          <div class="cellflex">${thumb}<button class="iconbtn" data-prevup="${i}" title="Upload screenshot"><i class="ti ti-upload"></i></button>${rm}</div>
+          <div class="cellflex">${thumb}${up}${rm}</div>
           <div class="cellflex"><a class="lnk" data-link href="${esc(v)}" target="_blank" rel="noopener" title="Open link" style="display:${v?'inline-flex':'none'}"><i class="ti ti-external-link"></i></a>
-          <input data-i="${i}" data-f="preview" data-type="url" value="${esc(v)}" placeholder="URL"></div></div></td>`;
+          <input data-i="${i}" data-f="preview" data-type="url" value="${esc(v)}" placeholder="URL"${locked?' disabled':''}></div></div></td>`;
       }
       if(c.type==='url'){
         const v=d[c.key]||'';
         return `<td><div class="cellflex">
           <a class="lnk" data-link href="${esc(v)}" target="_blank" rel="noopener" title="Open link" style="display:${v?'inline-flex':'none'}"><i class="ti ti-external-link"></i></a>
-          <input data-i="${i}" data-f="${c.key}" data-type="url" value="${esc(v)}" placeholder="URL"></div></td>`;
+          <input data-i="${i}" data-f="${c.key}" data-type="url" value="${esc(v)}" placeholder="URL"${locked?' disabled':''}></div></td>`;
       }
-      return `<td><input data-i="${i}" data-f="${c.key}" value="${esc(d[c.key])}"${c.key==='campaign'?' placeholder="Campaign name"':''}></td>`;
+      return `<td><input data-i="${i}" data-f="${c.key}" value="${esc(d[c.key])}"${c.key==='campaign'?' placeholder="Campaign name"':''}${locked?' disabled':''}></td>`;
     }).join('');
-    return `<tr data-row="${i}"><td class="gutter"><span class="grip" draggable="true" data-rowgrip="${i}" title="Drag to move row"><i class="ti ti-grip-vertical"></i></span></td>${cells}<td><button class="delbtn" data-del="${i}" title="Remove row"><i class="ti ti-trash"></i></button></td></tr>`;
+    const grip=locked?'':`<span class="grip" draggable="true" data-rowgrip="${i}" title="Drag to move row"><i class="ti ti-grip-vertical"></i></span>`;
+    const del=locked?'':`<button class="delbtn" data-del="${i}" title="Remove row"><i class="ti ti-trash"></i></button>`;
+    return `<tr data-row="${i}"><td class="gutter">${grip}</td>${cells}<td>${del}</td></tr>`;
   }).join('');
   $('tbody').querySelectorAll('select').forEach(s=>s.onchange=()=>onSelect(s));
   $('tbody').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{
@@ -261,6 +268,7 @@ function renderTable(){
 }
 
 function sortBy(key){
+  if(locked)return;
   if(sortKey===key)sortDir=-sortDir;else{sortKey=key;sortDir=1;}
   const isDate=DEF[key].sort==='date';
   data.sort((a,b)=>{
@@ -390,6 +398,20 @@ $('b-export').onclick=()=>{
   const csv=[order.map(k=>DEF[k].label).join(',')].concat(data.map(d=>order.map(k=>q(d[k])).join(','))).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='clerkminutes-growth.csv';a.click();
 };
+function updateLockUI(){
+  $('b-lock').innerHTML=locked?'<i class="ti ti-lock"></i> View only':'<i class="ti ti-lock-open"></i> Editing';
+  $('b-lock').title=locked?'Click and enter the Magic Key to edit':'Click to lock editing';
+  ['b-add','b-upload','b-reset'].forEach(id=>{$(id).disabled=locked;});
+}
+$('b-lock').onclick=()=>{
+  if(locked){
+    const k=prompt('Enter the Magic Key to edit this dashboard:');
+    if(k===null)return;
+    if(k===MAGIC_KEY){locked=false;try{localStorage.setItem(LKEY,'1');}catch(e){}setMsg('Editing unlocked.');}
+    else{setMsg('Wrong key — still view only.');return;}
+  }else{locked=true;try{localStorage.removeItem(LKEY);}catch(e){}setMsg('Locked — view only.');}
+  updateLockUI();renderTable();
+};
 $('b-reset').onclick=()=>{if(confirm('Reset campaigns, dropdown options, column order, and widths to defaults? This clears your changes.')){data=SEED.slice();OPTS=JSON.parse(JSON.stringify(DEFAULT_OPTS));order=COLS.map(c=>c.key);widths={};sortKey=null;sortDir=1;save();saveOpts();saveCols();saveWidths();renderTable();refresh();setMsg('Reset to defaults.');}};
 
 function pickPreviewImage(i){
@@ -415,7 +437,7 @@ function parseCSV(text){
   if(fld!==''||row.length){row.push(fld);if(row.some(x=>x!==''))rows.push(row);}
   return rows;
 }
-renderTable();refresh();
+updateLockUI();renderTable();refresh();
 $('tbody').addEventListener('focusin',()=>{editing=true;});
 $('tbody').addEventListener('focusout',()=>{editing=false;if(pendingRemote){const r=pendingRemote;pendingRemote=null;applyRemote(r);}});
 pullRemote();
