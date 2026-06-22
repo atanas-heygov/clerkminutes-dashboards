@@ -573,7 +573,7 @@ function renderKPIs(){
   const rows = aggregate();
   // Total overview reflects ONLY channels/campaigns that have a cost entered (known cost, incl $0)
   let spend=0, billCust=0, costedRev=0, costedRevFull=0, costedCust=0, anyKnown=false;
-  rows.forEach(r=>{ const m=metrics(r); if(m.known){ anyKnown=true; spend+=m.cost; billCust+=m.denom; costedRev+=m.arpa*m.denom; costedRevFull+=r.rev; costedCust+=r.cust; } });
+  rows.forEach(r=>{ const m=metrics(r); if(m.known){ anyKnown=true; spend+=m.cost; billCust+=m.denom; costedRev+=m.billRev; costedRevFull+=r.rev; costedCust+=r.cust; } });
   const blendedCac = (anyKnown && billCust>0) ? spend/billCust : null;
   const ret = anyKnown ? (spend>0 ? costedRev/spend : Infinity) : null;   // first-year return on costed channels
   const net = costedRevFull-spend;
@@ -648,9 +648,9 @@ function renderTable(){
   const sa=$('#showArchived'); if(sa){ sa.textContent = showArchived?'← Active rows':`Archived (${arch.length})`; sa.classList.toggle('on', showArchived); }
 
   // totals over displayed rows
-  const tot={cust:0,rev:0,cost:0,billCust:0,costedRev:0,anyKnown:false};
+  const tot={cust:0,rev:0,cost:0,billCust:0,costedRev:0,annRev:0,monRev:0,anyKnown:false};
   const mCache={};
-  disp.forEach(r=>{ const m=metrics(r); mCache[r.key]=m; tot.cust+=r.cust; tot.rev+=r.rev; if(m.known){tot.anyKnown=true;tot.cost+=m.cost;tot.billCust+=m.denom;tot.costedRev+=m.arpa*m.denom;} });
+  disp.forEach(r=>{ const m=metrics(r); mCache[r.key]=m; tot.cust+=r.cust; tot.rev+=r.rev; if(m.known){tot.anyKnown=true;tot.cost+=m.cost;tot.billCust+=m.denom;tot.costedRev+=m.billRev;tot.annRev+=m.annRev;tot.monRev+=m.monRev;} });
 
   const head=`<thead><tr><th class="dragcol" aria-hidden="true"></th>${order.map(id=>`<th draggable="${canEdit}" data-col="${id}" title="${canEdit?'Drag to reorder column':''}">${COLS[id].label}</th>`).join('')}</tr></thead>`;
   const body=disp.map((r,i)=>{
@@ -743,10 +743,17 @@ function renderBars(){
     return o;
   });
   const max = Math.max(1,...byMonth.map(o=>o.total));
-  const used = present.filter(k=>byMonth.some(o=>o.seg[k]>0));
+  // consistent stacking order across all bars: biggest channel at the bottom, Unattributed kept separate on top
+  const totals={}; present.forEach(k=>totals[k]=0);
+  byMonth.forEach(o=>present.forEach(k=>totals[k]+=o.seg[k]));
+  const stackOrder = present.slice().sort((a,b)=>{
+    if(a==='Unattributed') return 1; if(b==='Unattributed') return -1;   // Unattributed always last → renders on top
+    return totals[b]-totals[a];                                          // biggest first → renders at bottom
+  });
+  const used = stackOrder.filter(k=>totals[k]>0);
   $('#bars').innerHTML = byMonth.map(o=>{
-    // segment heights are a % of the stack (which itself is total/max of the column) — so use v/total
-    const segs = o.total>0 ? present.map(k=>{
+    // .bstack is column-reverse, so first item in stackOrder sits at the bottom. Heights use v/total.
+    const segs = o.total>0 ? stackOrder.map(k=>{
       const v=o.seg[k]; if(!v) return '';
       return `<div class="bseg" style="height:${v/o.total*100}%;background:${colorFor(k)}" title="${fullName[k]||k}: ${metric==='rev'?fmt(v):v}"></div>`;
     }).join('') : '';
@@ -794,7 +801,7 @@ function renderFramework(){
         <div>Net Rev<b>${fmt(r.rev)}</b></div>
         <div>ARPA<b>${fmt(m.arpa)}</b></div>
         <div>CAC<b>${m.isNA?'N/A':!m.known?'—':m.free?'$0':fmt(m.cac)}</b></div>
-        <div>Payback<b>${m.isNA?'N/A':!m.known?'—':m.payback.toFixed(0)+' mo'}</b></div>
+        <div>Payback<b>${m.isNA?'N/A':!m.known?'—':fmtPay(m.payback)}</b></div>
         <div>1yr ROI<b>${m.isNA?'N/A':!m.known?'—':fmtRet(m.ret)}</b></div>
       </div>
       <div class="dec-row">
