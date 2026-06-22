@@ -615,6 +615,7 @@ function renderTable(){
   };
   let order=(state.colOrder&&state.colOrder.length?state.colOrder:COL_ORDER_DEFAULT).filter(id=>COLS[id]);
   COL_ORDER_DEFAULT.forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  if(!canEdit) order=order.filter(id=>id!=='cost');   // Cost column only shows in Edit mode
 
   // rows: full view, then manual order, then filter for display
   const allRows=aggregate();
