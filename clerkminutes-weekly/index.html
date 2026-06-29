@@ -592,7 +592,7 @@
       </div>
       <div class="import-preview">
         <table>
-          <thead><tr><th>Week</th><th>Revenue</th><th>Trials</th><th>Sales</th><th>Conv %</th><th></th></tr></thead>
+          <thead><tr><th>Week</th><th>Revenue</th><th>Trials</th><th>Sales</th><th>Cancels</th><th>Conv %</th><th></th></tr></thead>
           <tbody id="imp-preview-body"></tbody>
         </table>
       </div>
@@ -688,6 +688,18 @@
         <canvas id="chart-trials-sales"></canvas>
       </div>
     </div>
+
+    <div class="chart-card full">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">New Sales, Cancels &amp; Conversion Rate</div>
+          <div class="chart-subtitle">Paying customers added vs lost each week · conversion rate overlay</div>
+        </div>
+      </div>
+      <div class="chart-container" style="height:220px">
+        <canvas id="chart-sales-cancels-conv"></canvas>
+      </div>
+    </div>
   </div>
 
   <!-- Table -->
@@ -704,6 +716,7 @@
           <th>Revenue ($)</th>
           <th>Trials</th>
           <th>Sales</th>
+          <th>Cancels</th>
           <th>Conv. Rate (%)</th>
           <th></th>
         </tr>
@@ -727,6 +740,10 @@
       <div class="field">
         <label>Sales</label>
         <input type="number" id="new-sales" placeholder="0" min="0" />
+      </div>
+      <div class="field">
+        <label>Cancels</label>
+        <input type="number" id="new-cancels" placeholder="0" min="0" />
       </div>
       <div class="field">
         <label>Conv. Rate (%)</label>
@@ -1008,6 +1025,58 @@ const trialsChart = makeChart('chart-trials-sales', {
   }
 });
 
+const salesCancelsConvChart = makeChart('chart-sales-cancels-conv', {
+  type: 'bar',
+  data: { labels: [], datasets: [
+    {
+      label: 'New Sales',
+      data: [],
+      backgroundColor: 'rgba(0,212,170,0.75)',
+      borderRadius: 4,
+      yAxisID: 'y',
+      order: 2,
+    },
+    {
+      label: 'Cancels',
+      data: [],
+      backgroundColor: 'rgba(232,69,69,0.75)',
+      borderRadius: 4,
+      yAxisID: 'y',
+      order: 2,
+    },
+    {
+      label: 'Conv. Rate %',
+      data: [],
+      type: 'line',
+      borderColor: '#6c63ff',
+      backgroundColor: 'transparent',
+      tension: 0.4,
+      pointRadius: 4,
+      pointBackgroundColor: '#6c63ff',
+      yAxisID: 'y2',
+      order: 1,
+      borderWidth: 2,
+    }
+  ]},
+  options: {
+    ...JSON.parse(JSON.stringify(chartDefaults)),
+    scales: {
+      x: { ...chartDefaults.scales.x },
+      y: {
+        ...chartDefaults.scales.y,
+        position: 'left',
+        ticks: { color: '#6b7280', font: { size: 11 } }
+      },
+      y2: {
+        ...chartDefaults.scales.y,
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#6c63ff', font: { size: 11 }, callback: v => v + '%' }
+      }
+    }
+  }
+});
+
 // ─── Render ───────────────────────────────────────────────────────────────────
 function fmt(n, prefix = '') {
   if (n === null || n === undefined || n === '') return '—';
@@ -1075,6 +1144,12 @@ function updateCharts() {
   trialsChart.data.datasets[0].data = rows.map(r => r.trials !== '' ? Number(r.trials) : null);
   trialsChart.data.datasets[1].data = rows.map(r => r.sales !== '' ? Number(r.sales) : null);
   trialsChart.update('none');
+
+  salesCancelsConvChart.data.labels = labels;
+  salesCancelsConvChart.data.datasets[0].data = rows.map(r => r.sales   !== '' && r.sales   != null ? Number(r.sales)   : null);
+  salesCancelsConvChart.data.datasets[1].data = rows.map(r => r.cancels !== '' && r.cancels != null ? Number(r.cancels) : null);
+  salesCancelsConvChart.data.datasets[2].data = rows.map(r => r.conv    !== '' && r.conv    != null ? Number(r.conv)    : null);
+  salesCancelsConvChart.update('none');
 }
 
 function autoConv(row) {
@@ -1108,6 +1183,10 @@ function renderTable() {
       <td>
         <input class="editable-input" type="number" value="${row.sales}" placeholder="—"
           oninput="updateField(${i}, 'sales', this.value)" min="0" />
+      </td>
+      <td>
+        <input class="editable-input" type="number" value="${row.cancels ?? ''}" placeholder="—"
+          oninput="updateField(${i}, 'cancels', this.value)" min="0" style="width:90px" />
       </td>
       <td>
         <input class="editable-input" type="number" value="${convVal}" placeholder="auto" step="0.1"
@@ -1150,11 +1229,12 @@ function addRow() {
   const revenue = document.getElementById('new-revenue').value;
   const trials  = document.getElementById('new-trials').value;
   const sales   = document.getElementById('new-sales').value;
+  const cancels = document.getElementById('new-cancels').value;
   const conv    = document.getElementById('new-conv').value;
 
   if (!week) { showToast('Please enter a week label'); return; }
 
-  const row = { week, revenue, trials, sales, conv };
+  const row = { week, revenue, trials, sales, cancels, conv };
   if (!conv && trials && sales) {
     row.conv = autoConv(row);
   }
@@ -1167,6 +1247,7 @@ function addRow() {
   document.getElementById('new-revenue').value = '';
   document.getElementById('new-trials').value  = '';
   document.getElementById('new-sales').value   = '';
+  document.getElementById('new-cancels').value = '';
   document.getElementById('new-conv').value    = '';
   document.getElementById('new-week').focus();
 
@@ -1192,9 +1273,9 @@ function clearAll() {
 
 function exportCSV() {
   if (!rows.length) { showToast('No data to export'); return; }
-  const header = 'Week,Revenue,Trials,Sales,Conversion Rate (%)';
+  const header = 'Week,Revenue,Trials,Sales,Cancels,Conversion Rate (%)';
   const lines = rows.map(r =>
-    [r.week, r.revenue, r.trials, r.sales, r.conv].map(v => `"${v ?? ''}"`).join(',')
+    [r.week, r.revenue, r.trials, r.sales, r.cancels, r.conv].map(v => `"${v ?? ''}"`).join(',')
   );
   const csv = [header, ...lines].join('\n');
   const a = document.createElement('a');
@@ -1269,18 +1350,20 @@ function parseCSV(text) {
       );
     }
 
-    const revRow  = findRow('revenue', 'rev');
-    const salesRow  = findRow('clerkminutes sales', 'sales');
-    const trialsRow = findRow('clerkminutes trial', 'trials');
-    const convRow   = findRow('conversion rate', 'conv rate');
+    const revRow     = findRow('revenue', 'rev');
+    const salesRow   = findRow('clerkminutes sales', 'sales');
+    const trialsRow  = findRow('clerkminutes trial', 'trials');
+    const convRow    = findRow('conversion rate', 'conv rate');
+    const cancelsRow = findRow('clerkminutes cancel', 'cancel');
 
     // Build one row per week (reverse so oldest week is first)
     return weekCols.slice().reverse().map(({ idx, label }) => {
-      const revenue = revRow   ? cleanNum(revRow[idx])   : '';
-      const sales   = salesRow ? cleanNum(salesRow[idx]) : '';
-      const trials  = trialsRow? cleanNum(trialsRow[idx]): '';
-      const conv    = convRow  ? cleanNum(convRow[idx])  : '';
-      return { week: label, revenue, trials, sales, conv };
+      const revenue = revRow     ? cleanNum(revRow[idx])     : '';
+      const sales   = salesRow   ? cleanNum(salesRow[idx])   : '';
+      const trials  = trialsRow  ? cleanNum(trialsRow[idx])  : '';
+      const conv    = convRow    ? cleanNum(convRow[idx])    : '';
+      const cancels = cancelsRow ? cleanNum(cancelsRow[idx]) : '';
+      return { week: label, revenue, trials, sales, conv, cancels };
     }).filter(r => r.revenue || r.trials || r.sales);
   }
 
@@ -1302,7 +1385,8 @@ function parseCSV(text) {
     const trials  = col(row, 'trial');
     const sales   = col(row, 'sale');
     const conv    = col(row, 'conversionrate', 'convrate', 'rate');
-    return { week, revenue, trials, sales, conv };
+    const cancels = col(row, 'cancel');
+    return { week, revenue, trials, sales, conv, cancels };
   }).filter(r => r.week);
 }
 
@@ -1329,9 +1413,10 @@ function parseAndPreview(text) {
       tr.innerHTML = `
         <td>${escHtml(r.week)}</td>
         <td>${r.revenue ? '$' + Number(r.revenue).toLocaleString() : '—'}</td>
-        <td>${r.trials || '—'}</td>
-        <td>${r.sales  || '—'}</td>
-        <td>${r.conv   ? r.conv + '%' : '—'}</td>
+        <td>${r.trials  || '—'}</td>
+        <td>${r.sales   || '—'}</td>
+        <td>${r.cancels || '—'}</td>
+        <td>${r.conv    ? r.conv + '%' : '—'}</td>
         <td><span class="pill ${isUpdate ? 'pill-upd' : 'pill-new'}">${isUpdate ? 'update' : 'new'}</span></td>
       `;
       tbody.appendChild(tr);
