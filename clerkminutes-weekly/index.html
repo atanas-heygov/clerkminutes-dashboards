@@ -544,6 +544,43 @@
       background: var(--accent);
     }
 
+    .sc-avg-row {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .sc-avg-tile {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      text-align: center;
+      min-width: 90px;
+    }
+
+    .sc-avg-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 3px;
+      white-space: nowrap;
+    }
+
+    .sc-avg-value {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .sc-sales  .sc-avg-value { color: var(--accent2); }
+    .sc-cancels .sc-avg-value { color: var(--accent3); }
+    .sc-net    .sc-avg-value { color: var(--accent2); }
+    .sc-net.negative .sc-avg-value { color: var(--accent3); }
+    .sc-conv   .sc-avg-value { color: var(--accent); }
+
     @media (max-width: 900px) {
       main { padding: 16px; }
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -694,6 +731,24 @@
         <div>
           <div class="chart-title">New Sales, Cancels &amp; Conversion Rate</div>
           <div class="chart-subtitle">Paying customers added vs lost each week · conversion rate overlay</div>
+        </div>
+        <div class="sc-avg-row" id="sc-avg-row">
+          <div class="sc-avg-tile sc-sales">
+            <div class="sc-avg-label">Avg Sales / wk</div>
+            <div class="sc-avg-value" id="sc-avg-sales">—</div>
+          </div>
+          <div class="sc-avg-tile sc-cancels">
+            <div class="sc-avg-label">Avg Cancels / wk</div>
+            <div class="sc-avg-value" id="sc-avg-cancels">—</div>
+          </div>
+          <div class="sc-avg-tile sc-net">
+            <div class="sc-avg-label">Avg Net / wk</div>
+            <div class="sc-avg-value" id="sc-avg-net">—</div>
+          </div>
+          <div class="sc-avg-tile sc-conv">
+            <div class="sc-avg-label">Avg Conv Rate</div>
+            <div class="sc-avg-value" id="sc-avg-conv">—</div>
+          </div>
         </div>
       </div>
       <div class="chart-container" style="height:220px">
@@ -1150,6 +1205,29 @@ function updateCharts() {
   salesCancelsConvChart.data.datasets[1].data = rows.map(r => r.cancels !== '' && r.cancels != null ? Number(r.cancels) : null);
   salesCancelsConvChart.data.datasets[2].data = rows.map(r => r.conv    !== '' && r.conv    != null ? Number(r.conv)    : null);
   salesCancelsConvChart.update('none');
+
+  // Compute averages for the stat tiles
+  const salesVals   = rows.map(r => r.sales)  .filter(v => v !== '' && v != null).map(Number);
+  const cancelsVals = rows.map(r => r.cancels) .filter(v => v !== '' && v != null).map(Number);
+  const convVals    = rows.map(r => r.conv)    .filter(v => v !== '' && v != null).map(Number);
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const avgSales   = avg(salesVals);
+  const avgCancels = avg(cancelsVals);
+  const avgConv    = avg(convVals);
+  const avgNet     = avgSales !== null && avgCancels !== null ? avgSales - avgCancels : null;
+
+  document.getElementById('sc-avg-sales').textContent   = avgSales   !== null ? avgSales.toFixed(1)   : '—';
+  document.getElementById('sc-avg-cancels').textContent = avgCancels !== null ? avgCancels.toFixed(1) : '—';
+  document.getElementById('sc-avg-conv').textContent    = avgConv    !== null ? avgConv.toFixed(1) + '%' : '—';
+
+  const netEl = document.getElementById('sc-avg-net');
+  if (avgNet !== null) {
+    const sign = avgNet >= 0 ? '+' : '';
+    netEl.textContent = sign + avgNet.toFixed(1);
+    document.querySelector('.sc-net').classList.toggle('negative', avgNet < 0);
+  } else {
+    netEl.textContent = '—';
+  }
 }
 
 function autoConv(row) {
