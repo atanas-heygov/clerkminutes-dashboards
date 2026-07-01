@@ -656,7 +656,7 @@ function parseCRMCSV(text) {
   const dateIdx = headers.findIndex(h => h.includes('created'));
   const leadIdx = headers.findIndex(h => h.includes('lead') || h.includes('notes'));
 
-  let totalARR = 0, customers = 0, summaryARR = null;
+  let totalARR = 0, customers = 0;
   const channelMonths = Array.from({length:12}, () => ({}));
 
   lines.slice(1).forEach(line => {
@@ -679,16 +679,8 @@ function parseCRMCSV(text) {
           channelMonths[mo][ch] = (channelMonths[mo][ch] || 0) + n;
         }
       }
-    } else {
-      // TOTAL row: col[6] = "TOTAL", col[7] = net ARR (HeyGov + ClerkMinutes - lost)
-      if ((cols[6] || '').trim().toUpperCase() === 'TOTAL') {
-        const v = parseFloat((cols[7] || '').replace(/[$,"]/g,''));
-        if (!isNaN(v) && v > 0) summaryARR = v;
-      }
     }
   });
-  // Prefer the pre-computed TOTAL from the spreadsheet; fall back to row-by-row sum
-  if (summaryARR !== null) totalARR = summaryARR;
 
   return { arr: totalARR, customers, channelMonths };
 }

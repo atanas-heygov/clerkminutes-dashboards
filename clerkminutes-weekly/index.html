@@ -871,7 +871,7 @@ function parseCRMCSV(text) {
   const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/['"]/g,'').trim());
   const annualIdx = headers.findIndex(h => h.includes('annual'));
   if (annualIdx === -1) throw new Error('Could not find "Annual $" column');
-  let totalARR = 0, customers = 0, summaryARR = null;
+  let totalARR = 0, customers = 0;
   lines.slice(1).forEach(line => {
     const cols   = parseLine(line);
     const rowNum = parseFloat((cols[0] || '').replace(/[^0-9.]/g, ''));
@@ -880,16 +880,8 @@ function parseCRMCSV(text) {
       // Real customer row — add their Annual $
       const n = parseFloat((cols[annualIdx] || '').replace(/[$,"]/g,'').replace(/,/g,'').trim());
       if (!isNaN(n) && n > 0) { totalARR += n; customers++; }
-    } else {
-      // TOTAL row: col[6] = "TOTAL", col[7] = net ARR (HeyGov + ClerkMinutes - lost)
-      if ((cols[6] || '').trim().toUpperCase() === 'TOTAL') {
-        const v = parseFloat((cols[7] || '').replace(/[$,"]/g,''));
-        if (!isNaN(v) && v > 0) summaryARR = v;
-      }
     }
   });
-  // Prefer the pre-computed TOTAL from the spreadsheet; fall back to row-by-row sum
-  if (summaryARR !== null) totalARR = summaryARR;
   return { arr: totalARR, customers };
 }
 
