@@ -644,23 +644,23 @@
 </div>
 
 <main>
-  <!-- ARR Goal Banner -->
+  <!-- MRR Banner -->
   <div class="arr-banner">
     <div>
-      <div class="arr-eyebrow">🎯 Annual Recurring Revenue</div>
+      <div class="arr-eyebrow">📈 Monthly Recurring Revenue</div>
       <div class="arr-current empty" id="arr-current">—</div>
       <div class="arr-customers" id="arr-customers">Import CRM to calculate</div>
     </div>
     <div>
       <div class="arr-milestones">
-        <span>$0</span><span>$250k</span><span>$500k</span><span>$750k</span><span>$1M goal</span>
+        <span>$0</span><span>$20k</span><span>$40k</span><span>$60k</span><span>$83k goal</span>
       </div>
       <div class="arr-track"><div class="arr-fill" id="arr-fill" style="width:0%"></div></div>
       <div class="arr-gap" id="arr-gap"></div>
     </div>
     <div class="arr-pct-box">
       <div class="arr-pct empty" id="arr-pct">—</div>
-      <div class="arr-pct-label">of $1M goal</div>
+      <div class="arr-pct-label">of $83k/mo goal</div>
     </div>
   </div>
 
@@ -816,7 +816,7 @@
 
 <script>
 // ─── ARR Goal ─────────────────────────────────────────────────────────────────
-const ARR_GOAL = 1_000_000;
+const MRR_GOAL = 83_333; // $1M ARR / 12
 const ARR_KEY  = 'clerkminutes_arr_v1';
 let arrState = (() => { try { return JSON.parse(localStorage.getItem(ARR_KEY)) || null; } catch { return null; } })();
 
@@ -841,15 +841,19 @@ function renderARR() {
   }
 
   const { arr, customers } = arrState;
-  const pctVal = Math.min(arr / ARR_GOAL * 100, 100);
-  const toGoal = Math.max(ARR_GOAL - arr, 0);
-  cur.className  = 'arr-current'; cur.textContent  = '$' + Math.round(arr).toLocaleString();
-  pct.className  = 'arr-pct';     pct.textContent  = pctVal.toFixed(1) + '%';
-  cust.innerHTML = `<strong>${customers}</strong> active customers`;
+  const mrr    = arr / 12;
+  const pctVal = Math.min(mrr / MRR_GOAL * 100, 100);
+  const toGoal = Math.max(MRR_GOAL - mrr, 0);
+
+  cur.className  = 'arr-current';
+  cur.textContent = '$' + Math.round(mrr).toLocaleString() + '/mo';
+  pct.className  = 'arr-pct';
+  pct.textContent = pctVal.toFixed(1) + '%';
+  cust.innerHTML = `<strong>${customers}</strong> customers · ARR $${Math.round(arr).toLocaleString()}`;
   fill.style.width = pctVal + '%';
   gap.innerHTML  = toGoal > 0
-    ? `<strong>$${Math.round(toGoal).toLocaleString()}</strong> to reach $1M`
-    : `🎉 <strong>$1M goal reached!</strong>`;
+    ? `<strong>$${Math.round(toGoal).toLocaleString()}/mo</strong> to reach $83k MRR goal`
+    : `🎉 <strong>$83k/mo MRR goal reached!</strong>`;
 }
 
 function parseCRMCSV(text) {

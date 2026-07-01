@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ClerkMinutes 2026 Monthly</title>
+  <title>ClerkMinutes Forecast vs Monthly</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -266,6 +266,18 @@
     .arr-pct.empty { color: var(--muted); -webkit-text-fill-color: var(--muted); background: none; font-size: 24px; }
     .arr-pct-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
+    /* ── MRR vs Forecast row ─────────────────────── */
+    .mrr-vs-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .mrr-vs-item { display: flex; flex-direction: column; gap: 2px; }
+    .mrr-vs-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+    .mrr-vs-val { font-size: 16px; font-weight: 700; }
+    .mrr-vs-sep { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
     /* ── Import button ───────────────────────────── */
     .btn {
       background: transparent;
@@ -398,7 +410,7 @@
 
 <header>
   <div>
-    <h1><span>ClerkMinutes</span> 2026 Monthly Dashboard</h1>
+    <h1><span>ClerkMinutes</span> Forecast vs Monthly</h1>
   </div>
   <div class="header-meta">
     <div class="legend-pill"><div class="dot" style="background:var(--accent)"></div> Actual</div>
@@ -413,23 +425,34 @@
 
 <main>
 
-  <!-- ARR Goal Banner -->
+  <!-- MRR Banner -->
   <div class="arr-banner">
     <div>
-      <div class="arr-eyebrow">🎯 Annual Recurring Revenue</div>
+      <div class="arr-eyebrow">📈 Monthly Recurring Revenue</div>
       <div class="arr-current empty" id="arr-current">—</div>
       <div class="arr-customers" id="arr-customers">Import CRM to calculate</div>
     </div>
     <div class="arr-track-wrap">
       <div class="arr-milestones">
-        <span>$0</span><span>$250k</span><span>$500k</span><span>$750k</span><span>$1M goal</span>
+        <span>$0</span><span>$20k</span><span>$40k</span><span>$60k</span><span>$83k goal</span>
       </div>
       <div class="arr-track"><div class="arr-fill" id="arr-fill" style="width:0%"></div></div>
       <div class="arr-gap" id="arr-gap"></div>
+      <div class="mrr-vs-row">
+        <div class="mrr-vs-item">
+          <span class="mrr-vs-label">Current MRR</span>
+          <span class="mrr-vs-val" id="mrr-current-val" style="color:var(--accent)">—</span>
+        </div>
+        <span class="mrr-vs-sep">vs forecast</span>
+        <div class="mrr-vs-item">
+          <span class="mrr-vs-label">Forecasted MRR</span>
+          <span class="mrr-vs-val" id="mrr-forecast-val" style="color:var(--yellow)">—</span>
+        </div>
+      </div>
     </div>
     <div class="arr-pct-box">
       <div class="arr-pct empty" id="arr-pct">—</div>
-      <div class="arr-pct-label">of $1M goal</div>
+      <div class="arr-pct-label">of $83k/mo goal</div>
     </div>
   </div>
 
@@ -548,8 +571,8 @@
 </div>
 
 <script>
-// ── ARR + Channel state ───────────────────────────────────────
-const ARR_GOAL = 1_000_000;
+// ── MRR + Channel state ───────────────────────────────────────
+const MRR_GOAL = 83_333; // $1M ARR / 12
 const ARR_KEY  = 'clerkminutes_arr_v1';
 const CH_KEY   = 'clerkminutes_channels_v1';
 let arrState    = (() => { try { return JSON.parse(localStorage.getItem(ARR_KEY)) || null; } catch { return null; } })();
@@ -573,20 +596,42 @@ function renderARR() {
     pct.className  = 'arr-pct empty';     pct.textContent  = '—';
     cust.textContent = 'Import CRM to calculate';
     fill.style.width = '0%'; gap.textContent = '';
+    updateMRRvsForecast(null);
     return;
   }
 
   const { arr, customers } = arrState;
-  const pctVal  = Math.min(arr / ARR_GOAL * 100, 100);
-  const toGoal  = Math.max(ARR_GOAL - arr, 0);
+  const mrr    = arr / 12;
+  const pctVal = Math.min(mrr / MRR_GOAL * 100, 100);
+  const toGoal = Math.max(MRR_GOAL - mrr, 0);
 
-  cur.className  = 'arr-current'; cur.textContent  = '$' + Math.round(arr).toLocaleString();
-  pct.className  = 'arr-pct';     pct.textContent  = pctVal.toFixed(1) + '%';
-  cust.innerHTML = `<strong>${customers}</strong> active customers`;
+  cur.className  = 'arr-current';
+  cur.textContent = '$' + Math.round(mrr).toLocaleString() + '/mo';
+  pct.className  = 'arr-pct';
+  pct.textContent = pctVal.toFixed(1) + '%';
+  cust.innerHTML = `<strong>${customers}</strong> customers · ARR $${Math.round(arr).toLocaleString()}`;
   fill.style.width = pctVal + '%';
   gap.innerHTML  = toGoal > 0
-    ? `<strong>$${Math.round(toGoal).toLocaleString()}</strong> to reach $1M`
-    : `🎉 <strong>$1M goal reached!</strong>`;
+    ? `<strong>$${Math.round(toGoal).toLocaleString()}/mo</strong> to reach $83k MRR goal`
+    : `🎉 <strong>$83k/mo MRR goal reached!</strong>`;
+
+  updateMRRvsForecast(mrr);
+}
+
+function updateMRRvsForecast(currentMRR) {
+  const curEl  = document.getElementById('mrr-current-val');
+  const fcstEl = document.getElementById('mrr-forecast-val');
+
+  curEl.textContent = currentMRR != null
+    ? '$' + Math.round(currentMRR).toLocaleString() + '/mo'
+    : '—';
+
+  // Forecasted MRR = forecast for next upcoming month (first month without actuals)
+  const actualCount = D.revActual.filter(v => v != null).length;
+  const nextFcst = D.revFcst[Math.min(actualCount, 11)];
+  fcstEl.textContent = nextFcst != null
+    ? '$' + Math.round(nextFcst).toLocaleString() + '/mo'
+    : '—';
 }
 
 function parseCRMCSV(text) {
@@ -1125,6 +1170,9 @@ function renderAll() {
     }
   });
   document.getElementById('tbl-body').innerHTML = html;
+
+  // Keep MRR vs Forecast comparison in sync whenever forecast data changes
+  updateMRRvsForecast(arrState ? arrState.arr / 12 : null);
 }
 
 // ── CSV parser for the forecast sheet ───────────────────────
